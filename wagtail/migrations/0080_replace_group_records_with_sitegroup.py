@@ -7,18 +7,17 @@ def initiate_site_group_with_group_data(apps, schema_editor):
     Group = apps.get_model("auth.Group")
     Site = apps.get_model("wagtailcore.Site")
     SiteGroup = apps.get_model("wagtailcore.SiteGroup")
+
+    default_site = Site.objects.filter(is_default_site=True).first()
     for group in Group.objects.all():
-        for site in Site.objects.all():
-            if Site.objects.all().count() > 1:
-                obj = SiteGroup.objects.create(id=group.id, name=group.name, site=site)
-            else:
-                obj = SiteGroup.objects.create(name=group.name, site=site)
-            obj.permissions.set(group.permissions.all())
-            obj.save()
+        obj = SiteGroup.objects.create(id=group.id, name=group.name, site=default_site)
+        obj.permissions.set(group.permissions.all())
+        obj.save()
 
 
-def do_nothing(apps, schema_editor):
-    pass
+def flush_site_group_records(apps, schema_editor):
+    SiteGroup = apps.get_model("wagtailcore.SiteGroup")
+    SiteGroup.objects.all().delete()
 
 
 class Migration(migrations.Migration):
@@ -29,6 +28,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(
             initiate_site_group_with_group_data,
-            do_nothing,
+            flush_site_group_records,
         )
     ]
