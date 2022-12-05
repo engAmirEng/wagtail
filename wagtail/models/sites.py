@@ -2,13 +2,23 @@ from collections import namedtuple
 
 from django.apps import apps
 from django.conf import settings
+from django.contrib.auth.models import (
+    _user_get_permissions,
+    _user_has_perm,
+    _user_has_module_perms,
+)
 from django.core.cache import cache
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ImproperlyConfigured
 from django.db import models
 from django.db.models import Case, IntegerField, Q, When, UniqueConstraint
 from django.db.models.functions import Lower
-from django.http.request import split_domain_port
+from django.http.request import split_domain_port, HttpRequest
+from django.utils.itercompat import is_iterable
 from django.utils.translation import gettext_lazy as _
+
+from sites.utils import set_current_session_project
+
+SiteUser = None
 
 MATCH_HOSTNAME_PORT = 0
 MATCH_HOSTNAME_DEFAULT = 1
@@ -308,3 +318,168 @@ class SiteGroup(models.Model):
 
     def natural_key(self):
         return self.name, self.site_id
+
+
+class AbstractSiteUser(models.Model):
+    site = models.ForeignKey(
+        Site, related_name="site_siteusers", on_delete=models.CASCADE
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="user_siteusers",
+        on_delete=models.CASCADE,
+    )
+
+    is_active = models.BooleanField(
+        _("active"),
+        default=True,
+        help_text=_(
+            "Designates whether this user should be treated as active. "
+            "Unselect this instead of deleting accounts."
+        ),
+    )
+
+    is_superuser = models.BooleanField(
+        _("superuser status"),
+        default=False,
+        help_text=_(
+            "Designates that this user has all permissions without "
+            "explicitly assigning them."
+        ),
+    )
+
+    groups = models.ManyToManyField(
+        SiteGroup,
+        verbose_name=_("groups"),
+        blank=True,
+        help_text=_(
+            "The groups this user belongs to. A user will get all permissions "
+            "granted to each of their groups."
+        ),
+        related_name="sitegroup_siteusers",
+    )
+    permissions = models.ManyToManyField(
+        "auth.Permission",
+        verbose_name=_("user permissions"),
+        blank=True,
+        help_text=_("Specific permissions for this user."),
+        related_name="permission_siteusers",
+    )
+
+    class Meta:
+        swappable = "SITE_USER_MODEL"
+        abstract = True
+        constraints = [
+            UniqueConstraint(fields=["site", "user"], name="unique_site_user")
+        ]
+
+    @staticmethod
+    def find_for_request(request: HttpRequest):
+        """
+        Find the site user object responsible for responding to this HTTP
+        request object. Try:
+
+        * reading site_id from session first
+        * then get user default choice
+        then validate the access to that
+
+        The site user will be cached via request.user.site_user
+        """
+        global SiteUser
+        SiteUser = SiteUser or get_site_user_model()
+
+        site_id = request.session.get("site_id")
+        if not site_id:
+            # To keep the user working on whatever site they want
+            site_id = request.session[
+                "site_id"
+            ] = request.user.user_siteusers.last().site_id
+        site_user = (
+            SiteUser.objects.filter(site_id=site_id, user_id=request.user.id)
+            .select_related("site")
+            .get()
+        )
+        if (
+            getattr(request.user, "site_user", None)
+            and request.user.site_user.site_id != site_id
+        ):
+            set_current_session_project(request, site_user)
+        return request.user.site_user
+
+    def get_site_user_permissions(self, obj=None):
+        """
+        Return a list of permission strings that this user has directly.
+        Query all available auth backends. If an object is passed in,
+        return only permissions matching this object.
+        """
+        return _user_get_permissions(self, obj, "user")
+
+    def get_site_group_permissions(self, obj=None):
+        """
+        Return a list of permission strings that this user has through their
+        groups. Query all available auth backends. If an object is passed in,
+        return only permissions matching this object.
+        """
+        return _user_get_permissions(self, obj, "group")
+
+    def get_all_permissions(self, obj=None):
+        return _user_get_permissions(self, obj, "all")
+
+    def has_perm(self, perm, obj=None):
+        """
+        Return True if the user has the specified permission. Query all
+        available auth backends, but return immediately if any backend returns
+        True. Thus, a user who has permission from a single auth backend is
+        assumed to have permission in general. If an object is provided, check
+        permissions for that object.
+        """
+        # Active superusers have all permissions.
+        if self.is_active and self.is_superuser:
+            return True
+
+        # Otherwise we need to check the backends.
+        return _user_has_perm(self, perm, obj)
+
+    def has_perms(self, perm_list, obj=None):
+        """
+        Return True if the user has each of the specified permissions. If
+        object is passed, check if the user has all required perms for it.
+        """
+        if not is_iterable(perm_list) or isinstance(perm_list, str):
+            raise ValueError("perm_list must be an iterable of permissions.")
+        return all(self.has_perm(perm, obj) for perm in perm_list)
+
+    def has_module_perms(self, app_label):
+        """
+        Return True if the user has any permissions in the given app label.
+        Use similar logic as has_perm(), above.
+        """
+        # Active superusers have all permissions.
+        if self.is_active and self.is_superuser:
+            return True
+
+        return _user_has_module_perms(self, app_label)
+
+
+def get_site_user_model() -> AbstractSiteUser:
+    """
+    Get the site user model from the ``SITE_USER_MODEL`` setting.
+    """
+    from django.apps import apps
+
+    try:
+        return apps.get_model(settings.SITE_USER_MODEL, require_ready=False)
+    except ValueError:
+        raise ImproperlyConfigured(
+            "settings must be of the form 'app_label.model_name'"
+        )
+    except LookupError:
+        raise ImproperlyConfigured(
+            "settings refers to model '%s' that has not been installed"
+            % settings.SITE_USER_MODEL
+        )
+    except AttributeError:
+        raise ImproperlyConfigured(
+            "Please configure settings.SITE_USER_MODEL \
+            that should subclass the AbstractSiteUser"
+        )
