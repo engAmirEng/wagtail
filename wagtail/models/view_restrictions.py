@@ -6,9 +6,10 @@ module or specific models defined there.
 """
 
 from django.conf import settings
-from django.contrib.auth.models import Group
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+from .sites import SiteGroup
 
 
 class BaseViewRestriction(models.Model):
@@ -26,7 +27,7 @@ class BaseViewRestriction(models.Model):
 
     restriction_type = models.CharField(max_length=20, choices=RESTRICTION_CHOICES)
     password = models.CharField(verbose_name=_("password"), max_length=255, blank=True)
-    groups = models.ManyToManyField(Group, verbose_name=_("groups"), blank=True)
+    groups = models.ManyToManyField(SiteGroup, verbose_name=_("groups"), blank=True)
 
     def accept_request(self, request):
         if self.restriction_type == BaseViewRestriction.PASSWORD:

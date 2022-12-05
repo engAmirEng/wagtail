@@ -18,7 +18,6 @@ from urllib.parse import urlparse
 
 from django import forms
 from django.conf import settings
-from django.contrib.auth.models import Group
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.core import checks
@@ -119,7 +118,7 @@ from .i18n import (  # noqa
     get_translatable_models,
 )
 from .reference_index import ReferenceIndex  # noqa
-from .sites import Site, SiteManager, SiteRootPath  # noqa
+from .sites import Site, SiteManager, SiteRootPath, SiteGroup  # noqa
 from .view_restrictions import BaseViewRestriction
 
 logger = logging.getLogger("wagtail")
@@ -2978,7 +2977,7 @@ PAGE_PERMISSION_TYPE_CHOICES = [
 
 class GroupPagePermission(models.Model):
     group = models.ForeignKey(
-        Group,
+        SiteGroup,
         verbose_name=_("group"),
         related_name="page_permissions",
         on_delete=models.CASCADE,
@@ -3838,7 +3837,7 @@ class Workflow(ClusterableModel):
 
 class GroupApprovalTask(Task):
     groups = models.ManyToManyField(
-        Group,
+        SiteGroup,
         verbose_name=_("groups"),
         help_text=_(
             "Pages/snippets at this step in a workflow will be moderated or approved by these groups of users"

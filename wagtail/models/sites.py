@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Case, IntegerField, Q, When
+from django.db.models import Case, IntegerField, Q, When, UniqueConstraint
 from django.db.models.functions import Lower
 from django.http.request import split_domain_port
 from django.utils.translation import gettext_lazy as _
@@ -267,3 +267,44 @@ class Site(models.Model):
     @staticmethod
     def clear_site_root_paths_cache():
         cache.delete(SITE_ROOT_PATHS_CACHE_KEY, version=SITE_ROOT_PATHS_CACHE_VERSION)
+
+
+class SiteGroupManager(models.Manager):
+    use_in_migrations = True
+
+    def get_by_natural_key(self, name, site_id):
+        return self.get(name=name, site_id=site_id)
+
+
+class SiteGroup(models.Model):
+    """
+    SiteGroup is a generic way of categorizing site_users to apply permissions, or
+    some other label, to those users.
+    """
+
+    name = models.CharField(_("name"), max_length=150)
+    permissions = models.ManyToManyField(
+        "auth.Permission",
+        related_name="permission_sitegroups",
+        verbose_name=_("permissions"),
+        blank=True,
+    )
+    site = models.ForeignKey(
+        Site, related_name="site_sitegroups", on_delete=models.CASCADE
+    )
+
+    objects = SiteManager()
+
+    class Meta:
+        verbose_name = _("group")
+        verbose_name_plural = _("groups")
+
+        constraints = [
+            UniqueConstraint(fields=["name", "site"], name="unique_name_site")
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def natural_key(self):
+        return self.name, self.site_id
