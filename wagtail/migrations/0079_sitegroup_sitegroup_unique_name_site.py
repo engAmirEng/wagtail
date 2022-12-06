@@ -2,6 +2,7 @@
 
 from django.db import migrations, models
 import django.db.models.deletion
+import wagtail.models.sites
 
 
 class Migration(migrations.Migration):
@@ -47,6 +48,9 @@ class Migration(migrations.Migration):
                 "verbose_name": "group",
                 "verbose_name_plural": "groups",
             },
+            managers=[
+                ("objects", wagtail.models.sites.SiteGroupManager()),
+            ],
         ),
         migrations.AddConstraint(
             model_name="sitegroup",

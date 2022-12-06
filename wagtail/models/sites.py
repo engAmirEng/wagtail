@@ -16,8 +16,6 @@ from django.http.request import split_domain_port, HttpRequest
 from django.utils.itercompat import is_iterable
 from django.utils.translation import gettext_lazy as _
 
-from sites.utils import set_current_session_project
-
 SiteUser = None
 
 MATCH_HOSTNAME_PORT = 0
@@ -303,7 +301,7 @@ class SiteGroup(models.Model):
         Site, related_name="site_sitegroups", on_delete=models.CASCADE
     )
 
-    objects = SiteManager()
+    objects = SiteGroupManager()
 
     class Meta:
         verbose_name = _("group")
@@ -385,6 +383,8 @@ class AbstractSiteUser(models.Model):
 
         The site user will be cached via request.user.site_user
         """
+        from ..sites.utils import set_current_session_project
+
         global SiteUser
         SiteUser = SiteUser or get_site_user_model()
 
@@ -400,8 +400,8 @@ class AbstractSiteUser(models.Model):
             .get()
         )
         if (
-            getattr(request.user, "site_user", None)
-            and request.user.site_user.site_id != site_id
+            not getattr(request.user, "site_user", None)
+            or request.user.site_user.site_id != site_id
         ):
             set_current_session_project(request, site_user)
         return request.user.site_user

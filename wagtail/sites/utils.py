@@ -1,6 +1,6 @@
 from django.http import HttpRequest
 
-from models.sites import AbstractSiteUser
+from ..models.sites import AbstractSiteUser
 
 
 def set_current_session_project(
