@@ -8,14 +8,14 @@
 
     <div class="nice-padding">
         <p>
-            {% blocktrans trimmed with group_name=group.name count group_user_count=group.user_set.count %}
+            {% blocktrans trimmed with group_name=group.name count group_user_count=group.sitegroup_siteusers.count %}
                 The group '{{ group_name }}' has <strong>{{ group_user_count }}</strong> member.
             {% plural %}
                 The group '{{ group_name }}' has <strong>{{ group_user_count }}</strong> members.
             {% endblocktrans %}
         </p>
         <p>
-            {% if group.user_set.count %}
+            {% if group.sitegroup_siteusers.count %}
                 {% trans "Deleting this group will revoke this group's permissions from all member users." %}
             {% endif %}
         </p>

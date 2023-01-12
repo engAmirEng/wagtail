@@ -283,8 +283,11 @@ class UserEditForm(UserForm):
 
 
 class GroupForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, site: Site, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.site = site
+        if self.instance and self.instance.pk:
+            assert self.instance.site == self.site
         self.registered_permissions = Permission.objects.none()
         for fn in hooks.get_hooks("register_permissions"):
             self.registered_permissions = self.registered_permissions | fn()
@@ -305,7 +308,7 @@ class GroupForm(forms.ModelForm):
     )
 
     class Meta:
-        model = Group
+        model = SiteGroup
         fields = (
             "name",
             "permissions",
@@ -339,6 +342,7 @@ class GroupForm(forms.ModelForm):
         except ValueError:
             # this form is not bound; we're probably creating a new group
             untouchable_permissions = []
+        self.instance.site = self.site
         group = super().save(commit=commit)
         group.permissions.add(*untouchable_permissions)
         return group

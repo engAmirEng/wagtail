@@ -7,6 +7,7 @@ from wagtail.admin.ui.tables import TitleColumn
 from wagtail.admin.views import generic
 from wagtail.admin.viewsets.model import ModelViewSet
 from wagtail.users.forms import GroupForm, GroupPagePermissionFormSet
+from wagtail.models.sites import get_site_user_model, SiteGroup
 from wagtail.users.views.users import Index
 
 _permission_panel_classes = None
@@ -83,13 +84,18 @@ class CreateView(PermissionPanelFormsMixin, generic.CreateView):
     success_message = _("Group '%(object)s' created.")
     template_name = "wagtailusers/groups/create.html"
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"site": self.request.user.site_user.site})
+        return kwargs
+
     def post(self, request, *args, **kwargs):
         """
         Handle POST requests: instantiate a form instance with the passed
         POST variables and then check if it's valid.
         """
         # Create an object now so that the permission panel forms have something to link them against
-        self.object = Group()
+        self.object = SiteGroup()
 
         form = self.get_form()
         permission_panels = self.get_permission_panel_forms()
@@ -121,6 +127,11 @@ class EditView(PermissionPanelFormsMixin, generic.EditView):
     delete_item_label = _("Delete group")
     context_object_name = "group"
     template_name = "wagtailusers/groups/edit.html"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"site": self.request.user.site_user.site})
+        return kwargs
 
     def post(self, request, *args, **kwargs):
         """
@@ -159,10 +170,15 @@ class DeleteView(generic.DeleteView):
     confirmation_message = _("Are you sure you want to delete this group?")
     template_name = "wagtailusers/groups/confirm_delete.html"
 
+    def get_context_data(self, **kwargs):
+        context = super(DeleteView, self).get_context_data()
+        context["group"] = context["sitegroup"]
+        return context
+
 
 class GroupViewSet(ModelViewSet):
     icon = "group"
-    model = Group
+    model = SiteGroup
 
     index_view_class = IndexView
     add_view_class = CreateView
