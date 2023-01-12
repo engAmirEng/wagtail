@@ -138,17 +138,14 @@ class UserForm(UsernameForm):
         if self.instance and self.instance.pk:
             self.site_user_instance = self.instance.user_siteusers.filter(
                 site=self.site
-            ).first()
-            if self.site_user_instance:
-                self.fields["site_groups"].initial = self.fields[
-                    "site_groups"
-                ].queryset.filter(sitegroup_siteusers=self.site_user_instance)
-                self.fields[
-                    "site_is_superuser"
-                ].initial = self.site_user_instance.is_superuser
-                self.fields[
-                    "site_is_active"
-                ].initial = self.site_user_instance.is_active
+            ).get()
+            self.fields["site_groups"].initial = self.fields[
+                "site_groups"
+            ].queryset.filter(sitegroup_siteusers=self.site_user_instance)
+            self.fields[
+                "site_is_superuser"
+            ].initial = self.site_user_instance.is_superuser
+            self.fields["site_is_active"].initial = self.site_user_instance.is_active
 
         if self.password_enabled:
             if self.password_required:
