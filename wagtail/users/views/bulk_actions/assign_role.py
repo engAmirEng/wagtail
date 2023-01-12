@@ -3,12 +3,23 @@ from django.contrib.auth.models import Group
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
+from wagtail.models.sites import get_site_user_model, SiteGroup, Site
 from wagtail.users.views.bulk_actions.user_bulk_action import UserBulkAction
 from wagtail.users.views.users import change_user_perm
 
+SiteUser = get_site_user_model()
+
 
 class RoleForm(forms.Form):
-    role = forms.ModelChoiceField(queryset=Group.objects.all())
+    role = forms.ModelChoiceField(queryset=SiteGroup.objects.all())
+
+    def __init__(self, site: Site, *args, **kwargs):
+        super(RoleForm, self).__init__(*args, **kwargs)
+
+        self.site = site
+        self.fields["role"].queryset = self.fields["role"].queryset.filter(
+            site=self.site
+        )
 
 
 class AssignRoleBulkAction(UserBulkAction):
@@ -22,6 +33,11 @@ class AssignRoleBulkAction(UserBulkAction):
     def check_perm(self, obj):
         return self.request.user.has_perm(change_user_perm)
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"site": self.request.user.site_user.site})
+        return kwargs
+
     def get_execution_context(self):
         return {
             "role": self.cleaned_form.cleaned_data["role"],
@@ -31,7 +47,7 @@ class AssignRoleBulkAction(UserBulkAction):
     def execute_action(cls, objects, role=None, **kwargs):
         if role is None:
             return
-        role.user_set.add(*objects)
+        role.sitegroup_siteusers.add(*SiteUser.objects.filter(user__in=objects))
         num_parent_objects = len(objects)
         return num_parent_objects, 0
 

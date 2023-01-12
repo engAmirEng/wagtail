@@ -4,6 +4,9 @@ from wagtail.admin.views.bulk_action import BulkAction
 from wagtail.users.views.users import get_users_filter_query
 
 
+User = get_user_model()
+
+
 class UserBulkAction(BulkAction):
     models = [get_user_model()]
 
@@ -17,3 +20,18 @@ class UserBulkAction(BulkAction):
             listing_objects = listing_objects.filter(conditions)
 
         return listing_objects
+
+    def get_actionable_objects(self):
+        objects, objects_without_access = super().get_actionable_objects()
+        user = self.request.user
+        users = list(
+            User.objects.filter(
+                id__in=[u.id for u in objects],
+                user_siteusers__site_id=user.site_user.site_id,
+            )
+        )
+        if len(objects) != len(users):
+            objects_without_access["items_with_no_access"].extend(
+                [i for i in objects if i not in users]
+            )
+        return users, objects_without_access

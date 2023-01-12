@@ -21,11 +21,21 @@ from wagtail.models import (
     GroupPagePermission,
     Page,
 )
+from wagtail.models.sites import get_site_user_model, SiteGroup, Site
+
 
 User = get_user_model()
+SiteUser = get_site_user_model()
+
 
 # The standard fields each user model is expected to have, as a minimum.
-standard_fields = {"email", "first_name", "last_name", "is_superuser", "groups"}
+standard_fields = {
+    "email",
+    "first_name",
+    "last_name",
+    "site_is_superuser",
+    "site_groups",
+}
 # Custom fields
 if hasattr(settings, "WAGTAIL_USER_CUSTOM_FIELDS"):
     custom_fields = set(settings.WAGTAIL_USER_CUSTOM_FIELDS)
@@ -97,16 +107,48 @@ class UserForm(UsernameForm):
         help_text=_("Enter the same password as above, for verification."),
     )
 
-    is_superuser = forms.BooleanField(
+    site_groups = forms.ModelMultipleChoiceField(
+        required=False,
+        queryset=SiteGroup.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        label=_("Groups"),
+    )
+    site_is_superuser = forms.BooleanField(
         label=_("Administrator"),
         required=False,
         help_text=_(
             "Administrators have full access to manage any object " "or setting."
         ),
     )
+    site_is_active = forms.BooleanField(
+        label=_("Active"),
+        required=False,
+        help_text=_(
+            "Designates whether this user should be treated as active. Unselect this instead of deleting accounts."
+        ),
+    )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, site: Site, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.site = site
+        self.fields["site_groups"].queryset = self.fields[
+            "site_groups"
+        ].queryset.filter(site=self.site)
+        if self.instance and self.instance.pk:
+            self.site_user_instance = self.instance.user_siteusers.filter(
+                site=self.site
+            ).first()
+            if self.site_user_instance:
+                self.fields["site_groups"].initial = self.fields[
+                    "site_groups"
+                ].queryset.filter(sitegroup_siteusers=self.site_user_instance)
+                self.fields[
+                    "site_is_superuser"
+                ].initial = self.site_user_instance.is_superuser
+                self.fields[
+                    "site_is_active"
+                ].initial = self.site_user_instance.is_active
 
         if self.password_enabled:
             if self.password_required:
@@ -181,16 +223,37 @@ class UserForm(UsernameForm):
         self._clean_username()
 
     def save(self, commit=True):
+        groups = self.cleaned_data["site_groups"]
+        is_superuser = self.cleaned_data["site_is_superuser"]
+        is_active = self.cleaned_data["site_is_active"]
         user = super().save(commit=False)
 
         if self.password_enabled:
             password = self.cleaned_data["password1"]
             if password:
                 user.set_password(password)
-
+        if (
+            self.instance
+            and self.instance.pk
+            and self.instance.user_siteusers.filter(site=self.site).exists()
+        ):
+            site_user = self.site_user_instance
+            site_user.is_superuser = is_superuser
+            site_user.is_active = is_active
+        else:
+            site_user = SiteUser(
+                user=user,
+                site=self.site,
+                is_active=is_active,
+                is_superuser=is_superuser,
+            )
         if commit:
             user.save()
             self.save_m2m()
+            site_user.save()
+            site_user.groups.set(groups)
+
+        user.site_user = site_user
         return user
 
 
@@ -198,7 +261,6 @@ class UserCreationForm(UserForm):
     class Meta:
         model = User
         fields = {User.USERNAME_FIELD} | standard_fields | custom_fields
-        widgets = {"groups": forms.CheckboxSelectMultiple}
 
 
 class UserEditForm(UserForm):
@@ -209,12 +271,14 @@ class UserEditForm(UserForm):
         super().__init__(*args, **kwargs)
 
         if editing_self:
-            del self.fields["is_active"]
-            del self.fields["is_superuser"]
+            del self.fields["site_is_active"]
+            del self.fields["site_is_superuser"]
 
     class Meta:
         model = User
-        fields = {User.USERNAME_FIELD, "is_active"} | standard_fields | custom_fields
+        fields = (
+            {User.USERNAME_FIELD, "site_is_active"} | standard_fields | custom_fields
+        )
         widgets = {"groups": forms.CheckboxSelectMultiple}
 
 

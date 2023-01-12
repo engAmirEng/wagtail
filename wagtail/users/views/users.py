@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -108,6 +109,10 @@ class Index(IndexView):
         if self.get_ordering() == "username":
             users = users.order_by(User.USERNAME_FIELD)
 
+        users = users.filter(
+            user_siteusers__site_id=self.request.user.site_user.site_id
+        )
+
         return users
 
     def get_template(self):
@@ -149,6 +154,11 @@ class Create(CreateView):
     success_message = gettext_lazy("User '%(object)s' created.")
     page_title = gettext_lazy("Add user")
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"site": self.request.user.site_user.site})
+        return kwargs
+
     def run_before_hook(self):
         return self.run_hook(
             "before_create_user",
@@ -188,6 +198,13 @@ class Edit(EditView):
     def get_page_subtitle(self):
         return ""
 
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .filter(user_siteusers__site_id=self.request.user.site_user.site_id)
+        )
+
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
         self.object = self.get_object()
@@ -205,6 +222,7 @@ class Edit(EditView):
         kwargs = super().get_form_kwargs()
         kwargs.update(
             {
+                "site": self.request.user.site_user.site,
                 "editing_self": self.editing_self,
             }
         )
@@ -257,6 +275,14 @@ class Delete(DeleteView):
         if not user_can_delete_user(self.request.user, self.object):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
+
+    def get_object(self, queryset=None):
+        obj = super(Delete, self).get_object(queryset)
+        if not obj.user_siteusers.filter(
+            site_id=self.request.user.site_user.site_id
+        ).exists():
+            raise Http404
+        return obj
 
     def run_before_hook(self):
         return self.run_hook(
