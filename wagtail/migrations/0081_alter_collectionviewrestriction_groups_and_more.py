@@ -44,4 +44,14 @@ class Migration(migrations.Migration):
                 blank=True, to="wagtailcore.sitegroup", verbose_name="groups"
             ),
         ),
+        migrations.AlterField(
+            model_name="groupcollectionpermission",
+            name="group",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="collection_permissions",
+                to="wagtailcore.sitegroup",
+                verbose_name="group",
+            ),
+        ),
     ]

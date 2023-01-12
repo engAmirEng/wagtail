@@ -155,7 +155,7 @@ class GroupCollectionPermission(models.Model):
     """
 
     group = models.ForeignKey(
-        Group,
+        "wagtailcore.SiteGroup",
         verbose_name=_("group"),
         related_name="collection_permissions",
         on_delete=models.CASCADE,
