@@ -8,6 +8,10 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("wagtailcore", "0080_replace_group_records_with_sitegroup"),
+
+        # TODO Track new migrations from Official Wagtail repo that reference auth.Group
+        ("wagtaildocs", "0011_add_choose_permissions"),
+        ("wagtailimages", "0023_add_choose_permissions"),
     ]
 
     operations = [
