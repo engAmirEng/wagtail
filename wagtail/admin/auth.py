@@ -137,7 +137,7 @@ def user_has_any_page_permission(user):
 
     # At least one of the users groups has a GroupPagePermission.
     # The user can probably do something.
-    if GroupPagePermission.objects.filter(group__in=user.groups.all()).exists():
+    if GroupPagePermission.objects.filter(group__in=user.site_user.groups.all()).exists():
         return True
 
     # Specific permissions for a page type do not mean anything.

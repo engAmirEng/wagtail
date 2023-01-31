@@ -10,7 +10,7 @@ def get_pages_with_direct_explore_permission(user):
         return Page.objects.filter(depth=1)
     else:
         return Page.objects.filter(
-            group_permissions__group__in=user.groups.all(),
+            group_permissions__group__in=user.site_user.groups.all(),
             group_permissions__permission_type__in=["add", "edit", "publish", "lock"],
         )
 

@@ -34,7 +34,7 @@ class CollectionPermissionLookupMixin:
             return True
 
         collection_permissions = GroupCollectionPermission.objects.filter(
-            group__user=user,
+            group__sitegroup_siteusers=user.site_user,
             permission__in=self._get_permission_objects_for_actions(actions),
         )
 
@@ -57,7 +57,7 @@ class CollectionPermissionLookupMixin:
         # for any of these permissions and any of the user's groups;
         # create a list of their paths
         collection_root_paths = Collection.objects.filter(
-            group_permissions__group__in=user.groups.all(),
+            group_permissions__group__in=user.site_user.groups.all(),
             group_permissions__permission__in=permissions,
         ).values_list("path", flat=True)
 
@@ -396,7 +396,7 @@ class CollectionMangementPermissionPolicy(
         # for this permission and any of the user's groups;
         # create a list of their paths
         collection_roots = Collection.objects.filter(
-            group_permissions__group__in=user.groups.all(),
+            group_permissions__group__in=user.site_user.groups.all(),
             group_permissions__permission=permission,
         ).values("path", "depth")
 

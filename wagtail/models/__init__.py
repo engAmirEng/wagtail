@@ -3018,7 +3018,7 @@ class UserPagePermissionsProxy:
 
         if user.is_active and not user.is_superuser:
             self.permissions = GroupPagePermission.objects.filter(
-                group__user=self.user
+                group__sitegroup_siteusers=self.user.site_user
             ).select_related("page")
 
     def revisions_for_moderation(self):

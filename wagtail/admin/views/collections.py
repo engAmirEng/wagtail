@@ -79,7 +79,7 @@ class Edit(EditView):
                 ["add", "edit", "delete"]
             )
             return not GroupCollectionPermission.objects.filter(
-                group__user=user,
+                group__sitegroup_siteusers=user.site_user,
                 permission__in=permissions,
                 collection=instance,
             ).exists()
