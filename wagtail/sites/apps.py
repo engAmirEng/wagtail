@@ -6,3 +6,6 @@ class WagtailSitesAppConfig(AppConfig):
     name = "wagtail.sites"
     label = "wagtailsites"
     verbose_name = _("Wagtail sites")
+
+    def ready(self):
+        from . import checks

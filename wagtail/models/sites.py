@@ -2,6 +2,7 @@ from collections import namedtuple
 
 from django.apps import apps
 from django.conf import settings
+from django.contrib import auth
 from django.contrib.auth.models import (
     _user_get_permissions,
     _user_has_perm,
@@ -318,6 +319,46 @@ class SiteGroup(models.Model):
         return self.name, self.site_id
 
 
+# A few helper functions for using correct auth backend for SiteUser.
+def _site_user_get_permissions(site_user, obj, from_name):
+    permissions = set()
+    name = "get_site_%s_permissions" % from_name
+    for backend in auth.get_backends():
+        if hasattr(backend, name):
+            permissions.update(getattr(backend, name)(site_user, obj))
+    return permissions
+
+
+def _site_user_has_perm(site_user, perm, obj):
+    """
+    A backend can raise `PermissionDenied` to short-circuit permission checking.
+    """
+    for backend in auth.get_backends():
+        if not hasattr(backend, "has_site_perm"):
+            continue
+        try:
+            if backend.has_site_perm(site_user, perm, obj):
+                return True
+        except PermissionDenied:
+            return False
+    return False
+
+
+def _site_user_has_module_perms(site_user, app_label):
+    """
+    A backend can raise `PermissionDenied` to short-circuit permission checking.
+    """
+    for backend in auth.get_backends():
+        if not hasattr(backend, "has_module_site_perms"):
+            continue
+        try:
+            if backend.has_module_site_perms(site_user, app_label):
+                return True
+        except PermissionDenied:
+            return False
+    return False
+
+
 class AbstractSiteUser(models.Model):
     site = models.ForeignKey(
         Site, related_name="site_siteusers", on_delete=models.CASCADE
@@ -412,7 +453,7 @@ class AbstractSiteUser(models.Model):
         Query all available auth backends. If an object is passed in,
         return only permissions matching this object.
         """
-        return _user_get_permissions(self, obj, "user")
+        return _site_user_get_permissions(self, obj, "user")
 
     def get_site_group_permissions(self, obj=None):
         """
@@ -420,12 +461,12 @@ class AbstractSiteUser(models.Model):
         groups. Query all available auth backends. If an object is passed in,
         return only permissions matching this object.
         """
-        return _user_get_permissions(self, obj, "group")
+        return _site_user_get_permissions(self, obj, "group")
 
-    def get_all_permissions(self, obj=None):
-        return _user_get_permissions(self, obj, "all")
+    def get_site_all_permissions(self, obj=None):
+        return _site_user_get_permissions(self, obj, "all")
 
-    def has_perm(self, perm, obj=None):
+    def site_has_perm(self, perm, obj=None):
         """
         Return True if the user has the specified permission. Query all
         available auth backends, but return immediately if any backend returns
@@ -438,18 +479,18 @@ class AbstractSiteUser(models.Model):
             return True
 
         # Otherwise we need to check the backends.
-        return _user_has_perm(self, perm, obj)
+        return _site_user_has_perm(self, perm, obj)
 
-    def has_perms(self, perm_list, obj=None):
+    def site_has_perms(self, perm_list, obj=None):
         """
         Return True if the user has each of the specified permissions. If
         object is passed, check if the user has all required perms for it.
         """
         if not is_iterable(perm_list) or isinstance(perm_list, str):
             raise ValueError("perm_list must be an iterable of permissions.")
-        return all(self.has_perm(perm, obj) for perm in perm_list)
+        return all(self.site_has_perm(perm, obj) for perm in perm_list)
 
-    def has_module_perms(self, app_label):
+    def site_has_module_perms(self, app_label):
         """
         Return True if the user has any permissions in the given app label.
         Use similar logic as has_perm(), above.
@@ -458,7 +499,7 @@ class AbstractSiteUser(models.Model):
         if self.is_active and self.is_superuser:
             return True
 
-        return _user_has_module_perms(self, app_label)
+        return _site_user_has_module_perms(self, app_label)
 
 
 def get_site_user_model() -> AbstractSiteUser:
