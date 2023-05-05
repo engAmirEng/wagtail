@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
             model_name="groupapprovaltask",
             name="groups",
             field=models.ManyToManyField(
-                help_text="Pages at this step in a workflow will be moderated or approved by these groups of users",
+                help_text="Pages/snippets at this step in a workflow will be moderated or approved by these groups of users",
                 to="wagtailcore.sitegroup",
                 verbose_name="groups",
             ),
