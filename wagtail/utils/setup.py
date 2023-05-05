@@ -5,6 +5,7 @@ import subprocess
 
 from setuptools import Command
 from setuptools.command.bdist_egg import bdist_egg
+from setuptools.command.build_py import build_py
 from setuptools.command.sdist import sdist as base_sdist
 
 from wagtail import __semver__
@@ -88,3 +89,32 @@ class check_bdist_egg(bdist_egg):
                     ]
                 )
             )
+
+
+class PipStaticBuild(build_py):
+    def run(self):
+        import shutil
+
+        try:
+            res, err = subprocess.Popen(
+                [shutil.which("npm"), "install", "-y"],
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+            ).communicate()
+            print(f"npm install:err: {err}")
+            print(f"npm install:res: {res}")
+        except Exception as e:
+            print("error during npm install: ", e)
+            raise
+        try:
+            res, err = subprocess.Popen(
+                [shutil.which("npm"), "run", "build"],
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+            ).communicate()
+            print(f"npm run build:err: {err}")
+            print(f"npm run build:res: {res}")
+        except Exception as e:
+            print("error during npm run build: ", e)
+            raise
+        build_py.run(self)

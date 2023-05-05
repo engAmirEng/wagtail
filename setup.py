@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from wagtail import __version__
-from wagtail.utils.setup import assets, check_bdist_egg, sdist
+from wagtail.utils.setup import assets, check_bdist_egg, sdist, PipStaticBuild
 
 try:
     from setuptools import find_packages, setup
@@ -130,5 +130,6 @@ https://github.com/wagtail/wagtail/.",
         "sdist": sdist,
         "bdist_egg": check_bdist_egg,
         "assets": assets,
+        "build_py": PipStaticBuild,
     },
 )
