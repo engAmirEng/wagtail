@@ -80,13 +80,13 @@ class CustomBuild(build_py):
             res, err = subprocess.Popen(
                 [shutil.which("npm"), 'install', '-y'],
                 stderr=subprocess.PIPE, stdout=subprocess.PIPE).communicate()
-            if err:
-                raise Exception(f'aaaaaaaaaaaa: {err}')
+            print(f'aaaaaaaaaaaa:err: {err}')
+            print(f'aaaaaaaaaaaa:res: {res}')
             res, err = subprocess.Popen(
                 [shutil.which("npm"), 'run', 'build'],
             stderr = subprocess.PIPE, stdout = subprocess.PIPE).communicate()
-            if err:
-                raise Exception(f'bbbbbbbbbbb: {err}')
+            print(f'bbbbbbbbbbb:err: {err}')
+            print(f'bbbbbbbbbbb:res: {res}')
             # check_call([shutil.which("npm"), "install"])
             # check_call([shutil.which("npm"), 'run', 'build'], cwd='./')
         except Exception as e:
