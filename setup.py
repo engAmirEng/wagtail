@@ -67,6 +67,22 @@ testing_extras = [
     "factory-boy>=3.2",
 ]
 
+
+from setuptools import setup, find_packages
+from setuptools.command.build_py import build_py
+from subprocess import check_call
+
+class CustomBuild(build_py):
+    def run(self):
+        try:
+            import shutil
+            check_call([shutil.which("npm"), "install"])
+            check_call([shutil.which("npm"), 'run', 'build'], cwd='./')
+        except Exception as e:
+            print(e)
+            raise
+        build_py.run(self)
+
 # Documentation dependencies
 documentation_extras = [
     "pyenchant>=3.1.1,<4",
@@ -130,5 +146,6 @@ https://github.com/wagtail/wagtail/.",
         "sdist": sdist,
         "bdist_egg": check_bdist_egg,
         "assets": assets,
+        "build_py": CustomBuild,
     },
 )
