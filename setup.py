@@ -75,9 +75,20 @@ from subprocess import check_call
 class CustomBuild(build_py):
     def run(self):
         try:
+            import subprocess
             import shutil
-            check_call([shutil.which("npm"), "install"])
-            check_call([shutil.which("npm"), 'run', 'build'], cwd='./')
+            res, err = subprocess.Popen(
+                [shutil.which("npm"), 'install', '-y'],
+                stderr=subprocess.PIPE, stdout=subprocess.PIPE).communicate()
+            if err:
+                raise Exception(f'aaaaaaaaaaaa: {err}')
+            res, err = subprocess.Popen(
+                [shutil.which("npm"), 'run', 'build'],
+            stderr = subprocess.PIPE, stdout = subprocess.PIPE).communicate()
+            if err:
+                raise Exception(f'bbbbbbbbbbb: {err}')
+            # check_call([shutil.which("npm"), "install"])
+            # check_call([shutil.which("npm"), 'run', 'build'], cwd='./')
         except Exception as e:
             print(e)
             raise
