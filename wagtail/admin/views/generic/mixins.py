@@ -268,7 +268,7 @@ class CreateEditViewOptionalFeaturesMixin:
 
     def user_has_permission(self, permission):
         user = self.request.user
-        if user.is_superuser:
+        if user.site_user.is_superuser:
             return True
 
         # Workflow lock/unlock methods take precedence before the base

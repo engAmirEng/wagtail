@@ -163,10 +163,10 @@ class AuthenticationOnlyPermissionPolicy(BasePermissionPolicy):
     """
 
     def user_has_permission(self, user, action):
-        return user.is_authenticated and user.is_active
+        return user.is_authenticated and user.site_user.is_active
 
     def user_has_any_permission(self, user, actions):
-        return user.is_authenticated and user.is_active
+        return user.is_authenticated and user.site_user.is_active
 
     def users_with_any_permission(self, actions):
         return get_user_model().objects.filter(is_active=True)
@@ -305,7 +305,7 @@ class OwnershipPermissionPolicy(BaseDjangoAuthPermissionPolicy):
             )
         else:
             # unrecognised actions are only allowed for active superusers
-            return user.is_active and user.is_superuser
+            return user.site_user.is_active and user.site_user.is_superuser
 
     def users_with_any_permission(self, actions):
         if "change" in actions or "delete" in actions:
@@ -344,10 +344,10 @@ class OwnershipPermissionPolicy(BaseDjangoAuthPermissionPolicy):
             # 'change' and 'delete' are the only actions that are well-defined
             # for specific instances. Other actions are only available to
             # active superusers.
-            return user.is_active and user.is_superuser
+            return user.site_user.is_active and user.site_user.is_superuser
 
     def instances_user_has_any_permission_for(self, user, actions):
-        if user.is_active and user.is_superuser:
+        if user.site_user.is_active and user.site_user.is_superuser:
             # active superusers can perform any action (including unrecognised ones)
             # on any instance
             return self.model.objects.all()

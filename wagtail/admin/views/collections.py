@@ -72,7 +72,7 @@ class Edit(EditView):
         Is this instance used for assigning GroupCollectionPermissions to the user?
         If so, this user is not allowed do move the collection to a new part of the tree
         """
-        if user.is_active and user.is_superuser:
+        if user.site_user.is_active and user.site_user.is_superuser:
             return True
         else:
             permissions = self.permission_policy._get_permission_objects_for_actions(

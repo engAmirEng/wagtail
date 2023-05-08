@@ -27,10 +27,10 @@ class CollectionPermissionLookupMixin:
         If collection is specified, only consider GroupCollectionPermission records
         that apply to that collection.
         """
-        if not (user.is_active and user.is_authenticated):
+        if not (user.site_user.is_active and user.site_user.is_authenticated):
             return False
 
-        if user.is_superuser:
+        if user.site_user.is_superuser:
             return True
 
         collection_permissions = GroupCollectionPermission.objects.filter(
@@ -117,7 +117,7 @@ class CollectionPermissionLookupMixin:
         Return a queryset of all collections in which the given user has
         permission to perform any of the given actions
         """
-        if user.is_active and user.is_superuser:
+        if user.site_user.is_active and user.site_user.is_superuser:
             # active superusers can perform any action (including unrecognised ones)
             # in any collection
             return Collection.objects.all()
@@ -185,9 +185,9 @@ class CollectionPermissionPolicy(
         Return a queryset of all instances of this model for which the given user has
         permission to perform any of the given actions
         """
-        if not (user.is_active and user.is_authenticated):
+        if not (user.site_user.is_active and user.site_user.is_authenticated):
             return self.model.objects.none()
-        elif user.is_superuser:
+        elif user.site_user.is_superuser:
             return self.model.objects.all()
         else:
             # filter to just the collections with this permission
@@ -243,7 +243,7 @@ class CollectionOwnershipPermissionPolicy(
             return self._check_perm(user, ["add", "change"])
         else:
             # unrecognised actions are only allowed for active superusers
-            return user.is_active and user.is_superuser
+            return user.site_user.is_active and user.site_user.is_superuser
 
     def users_with_any_permission(self, actions):
         if "change" in actions or "delete" in actions:
@@ -281,10 +281,10 @@ class CollectionOwnershipPermissionPolicy(
             # 'change' and 'delete' are the only actions that are well-defined
             # for specific instances. Other actions are only available to
             # active superusers.
-            return user.is_active and user.is_superuser
+            return user.site_user.is_active and user.site_user.is_superuser
 
     def instances_user_has_any_permission_for(self, user, actions):
-        if user.is_active and user.is_superuser:
+        if user.site_user.is_active and user.site_user.is_superuser:
             # active superusers can perform any action (including unrecognised ones)
             # on any instance
             return self.model.objects.all()
@@ -354,7 +354,7 @@ class CollectionOwnershipPermissionPolicy(
         Return a queryset of all collections in which the given user has
         permission to perform any of the given actions
         """
-        if user.is_active and user.is_superuser:
+        if user.site_user.is_active and user.site_user.is_superuser:
             # active superusers can perform any action (including unrecognised ones)
             # in any collection
             return Collection.objects.all()
@@ -460,7 +460,7 @@ class CollectionMangementPermissionPolicy(
         return self._users_with_perm(actions, collection=instance)
 
     def instances_user_has_permission_for(self, user, action):
-        if user.is_active and user.is_superuser:
+        if user.site_user.is_active and user.site_user.is_superuser:
             # active superusers can perform any action (including unrecognised ones)
             # in any collection - except for deleting the root collection
             if action == "delete":

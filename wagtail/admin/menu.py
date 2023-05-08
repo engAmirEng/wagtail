@@ -160,7 +160,7 @@ class AdminOnlyMenuItem(MenuItem):
     """A MenuItem which is only shown to superusers"""
 
     def is_shown(self, request):
-        return request.user.is_superuser
+        return request.user.site_user.is_superuser
 
 
 admin_menu = Menu(

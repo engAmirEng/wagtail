@@ -530,7 +530,7 @@ class LockView(PermissionCheckedMixin, lock.LockView):
     permission_required = "lock"
 
     def user_has_permission(self, permission):
-        if self.request.user.is_superuser:
+        if self.request.user.site_user.is_superuser:
             return True
 
         if permission == self.permission_required and isinstance(
@@ -549,7 +549,7 @@ class UnlockView(PermissionCheckedMixin, lock.UnlockView):
     permission_required = "unlock"
 
     def user_has_permission(self, permission):
-        if self.request.user.is_superuser:
+        if self.request.user.site_user.is_superuser:
             return True
 
         if permission == self.permission_required:

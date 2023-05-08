@@ -53,7 +53,7 @@ class UpgradeNotificationPanel(Component):
 
     def render_html(self, parent_context: Mapping[str, Any] = None) -> str:
         if (
-            parent_context["request"].user.is_superuser
+            parent_context["request"].user.site_user.is_superuser
             and self.get_upgrade_check_setting()
         ):
             return super().render_html(parent_context)

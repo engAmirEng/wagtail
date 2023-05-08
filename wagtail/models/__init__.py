@@ -3015,8 +3015,7 @@ class UserPagePermissionsProxy:
 
     def __init__(self, user):
         self.user = user
-
-        if user.is_active and not user.is_superuser:
+        if user.site_user.is_active and not user.site_user.is_superuser:
             self.permissions = GroupPagePermission.objects.filter(
                 group__sitegroup_siteusers=self.user.site_user
             ).select_related("page")
@@ -3025,9 +3024,9 @@ class UserPagePermissionsProxy:
         """Return a queryset of page revisions awaiting moderation that this user has publish permission on"""
 
         # Deal with the trivial cases first...
-        if not self.user.is_active:
+        if not self.user.site_user.is_active:
             return Revision.objects.none()
-        if self.user.is_superuser:
+        if self.user.site_user.is_superuser:
             return Revision.page_revisions.submitted()
 
         # get the list of pages for which they have direct publish permission
@@ -3064,9 +3063,9 @@ class UserPagePermissionsProxy:
         specific group permissions and also the ancestors of those pages (in
         order to enable navigation in the explorer)"""
         # Deal with the trivial cases first...
-        if not self.user.is_active:
+        if not self.user.site_user.is_active:
             return Page.objects.none()
-        if self.user.is_superuser:
+        if self.user.site_user.is_superuser:
             return Page.objects.all()
 
         explorable_pages = Page.objects.none()
@@ -3099,9 +3098,9 @@ class UserPagePermissionsProxy:
     def editable_pages(self):
         """Return a queryset of the pages that this user has permission to edit"""
         # Deal with the trivial cases first...
-        if not self.user.is_active:
+        if not self.user.site_user.is_active:
             return Page.objects.none()
-        if self.user.is_superuser:
+        if self.user.site_user.is_superuser:
             return Page.objects.all()
 
         editable_pages = Page.objects.none()
@@ -3127,9 +3126,9 @@ class UserPagePermissionsProxy:
     def publishable_pages(self):
         """Return a queryset of the pages that this user has permission to publish"""
         # Deal with the trivial cases first...
-        if not self.user.is_active:
+        if not self.user.site_user.is_active:
             return Page.objects.none()
-        if self.user.is_superuser:
+        if self.user.site_user.is_superuser:
             return Page.objects.all()
 
         publishable_pages = Page.objects.none()
@@ -3147,9 +3146,9 @@ class UserPagePermissionsProxy:
 
     def can_remove_locks(self):
         """Returns True if the user has permission to unlock pages they have not locked"""
-        if self.user.is_superuser:
+        if self.user.site_user.is_superuser:
             return True
-        if not self.user.is_active:
+        if not self.user.site_user.is_active:
             return False
         else:
             return self.permissions.filter(permission_type="unlock").exists()
@@ -3162,7 +3161,7 @@ class PagePermissionTester:
         self.page = page
         self.page_is_root = page.depth == 1  # Equivalent to page.is_root()
 
-        if self.user.is_active and not self.user.is_superuser:
+        if self.user.site_user.is_active and not self.user.site_user.is_superuser:
             self.permissions = {
                 perm.permission_type
                 for perm in user_perms.permissions
@@ -3177,15 +3176,15 @@ class PagePermissionTester:
         return lock and lock.for_user(self.user)
 
     def can_add_subpage(self):
-        if not self.user.is_active:
+        if not self.user.site_user.is_active:
             return False
         specific_class = self.page.specific_class
         if specific_class is None or not specific_class.creatable_subpage_models():
             return False
-        return self.user.is_superuser or ("add" in self.permissions)
+        return self.user.site_user.is_superuser or ("add" in self.permissions)
 
     def can_edit(self):
-        if not self.user.is_active:
+        if not self.user.site_user.is_active:
             return False
 
         if (
@@ -3193,7 +3192,7 @@ class PagePermissionTester:
         ):  # root node is not a page and can never be edited, even by superusers
             return False
 
-        if self.user.is_superuser:
+        if self.user.site_user.is_superuser:
             return True
 
         if "edit" in self.permissions:
@@ -3210,7 +3209,7 @@ class PagePermissionTester:
         return False
 
     def can_delete(self, ignore_bulk=False):
-        if not self.user.is_active:
+        if not self.user.site_user.is_active:
             return False
 
         if (
@@ -3218,7 +3217,7 @@ class PagePermissionTester:
         ):  # root node is not a page and can never be deleted, even by superusers
             return False
 
-        if self.user.is_superuser:
+        if self.user.site_user.is_superuser:
             # superusers require no further checks
             return True
 
@@ -3255,22 +3254,22 @@ class PagePermissionTester:
             return False
 
     def can_unpublish(self):
-        if not self.user.is_active:
+        if not self.user.site_user.is_active:
             return False
         if (not self.page.live) or self.page_is_root:
             return False
         if self.page_locked():
             return False
 
-        return self.user.is_superuser or ("publish" in self.permissions)
+        return self.user.site_user.is_superuser or ("publish" in self.permissions)
 
     def can_publish(self):
-        if not self.user.is_active:
+        if not self.user.site_user.is_active:
             return False
         if self.page_is_root:
             return False
 
-        return self.user.is_superuser or ("publish" in self.permissions)
+        return self.user.site_user.is_superuser or ("publish" in self.permissions)
 
     def can_submit_for_moderation(self):
         return (
@@ -3286,7 +3285,7 @@ class PagePermissionTester:
         return self.can_publish()
 
     def can_lock(self):
-        if self.user.is_superuser:
+        if self.user.site_user.is_superuser:
             return True
         current_workflow_task = self.page.current_workflow_task
         if current_workflow_task:
@@ -3298,7 +3297,7 @@ class PagePermissionTester:
         return False
 
     def can_unlock(self):
-        if self.user.is_superuser:
+        if self.user.site_user.is_superuser:
             return True
 
         if self.user_has_lock():
@@ -3320,7 +3319,7 @@ class PagePermissionTester:
         to be able to publish root itself. (Also, can_publish_subpage returns false if the page
         does not allow subpages at all.)
         """
-        if not self.user.is_active:
+        if not self.user.site_user.is_active:
             return False
         specific_class = self.page.specific_class
         if specific_class is None or not specific_class.creatable_subpage_models():
@@ -3357,9 +3356,9 @@ class PagePermissionTester:
             return False
 
         # shortcut the trivial 'everything' / 'nothing' permissions
-        if not self.user.is_active:
+        if not self.user.site_user.is_active:
             return False
-        if self.user.is_superuser:
+        if self.user.site_user.is_superuser:
             return True
 
         # check that the page can be moved at all
@@ -3389,7 +3388,7 @@ class PagePermissionTester:
             return False
 
         # reject inactive users early
-        if not self.user.is_active:
+        if not self.user.site_user.is_active:
             return False
 
         # reject early if pages of this type cannot be created at the destination
@@ -3397,7 +3396,7 @@ class PagePermissionTester:
             return False
 
         # skip permission checking for super users
-        if self.user.is_superuser:
+        if self.user.site_user.is_superuser:
             return True
 
         # Inspect permissions on the destination

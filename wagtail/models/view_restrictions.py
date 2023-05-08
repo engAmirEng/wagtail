@@ -42,7 +42,7 @@ class BaseViewRestriction(models.Model):
                 return False
 
         elif self.restriction_type == BaseViewRestriction.GROUPS:
-            if not request.user.is_superuser:
+            if not request.user.site_user.is_superuser:
                 current_user_groups = request.user.groups.all()
 
                 if not any(group in current_user_groups for group in self.groups.all()):

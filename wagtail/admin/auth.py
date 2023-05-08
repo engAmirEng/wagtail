@@ -128,11 +128,11 @@ def user_has_any_page_permission(user):
     page.
     """
     # Can't do nothin' if you're not active.
-    if not user.is_active:
+    if not user.site_user.is_active:
         return False
 
     # Superusers can do anything.
-    if user.is_superuser:
+    if user.site_user.is_superuser:
         return True
 
     # At least one of the users groups has a GroupPagePermission.

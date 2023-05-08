@@ -130,7 +130,7 @@ class PagePermissionHelper(PermissionHelper):
         )
 
         # Get queryset of pages where the user has permission to add subpages
-        if user.is_superuser:
+        if user.site_user.is_superuser:
             pages_where_user_can_add = Page.objects.all()
         else:
             pages_where_user_can_add = Page.objects.none()
