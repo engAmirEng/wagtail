@@ -27,7 +27,7 @@ class CollectionPermissionLookupMixin:
         If collection is specified, only consider GroupCollectionPermission records
         that apply to that collection.
         """
-        if not (user.site_user.is_active and user.site_user.is_authenticated):
+        if not (user.site_user.is_active and user.is_authenticated):
             return False
 
         if user.site_user.is_superuser:
@@ -187,7 +187,7 @@ class CollectionPermissionPolicy(
         Return a queryset of all instances of this model for which the given user has
         permission to perform any of the given actions
         """
-        if not (user.site_user.is_active and user.site_user.is_authenticated):
+        if not (user.site_user.is_active and user.is_authenticated):
             return self.model.objects.none()
         elif user.site_user.is_superuser:
             return self.model.objects.all()
