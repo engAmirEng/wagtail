@@ -36,7 +36,7 @@ def get_requested_by_queryset(request):
 
 
 def get_editable_page_ids_query(request):
-    pages = UserPagePermissionsProxy(request.user).editable_pages()
+    pages = UserPagePermissionsProxy(request.user).editable_pages().in_site(request.user.site_user.site)
     # Need to cast the page ids to string because Postgres doesn't support
     # implicit type casts when querying on GenericRelations
     # https://code.djangoproject.com/ticket/16055

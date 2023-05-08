@@ -318,7 +318,10 @@ class EditView(TemplateResponseMixin, ContextMixin, HookResponseMixin, View):
 
     def dispatch(self, request, page_id):
         self.real_page_record = get_object_or_404(
-            Page.objects.prefetch_workflow_states(), id=page_id
+            Page.objects.in_site(
+                request.user.site_user.site
+            ).prefetch_workflow_states(),
+            id=page_id,
         )
         self.latest_revision = self.real_page_record.get_latest_revision()
         self.scheduled_revision = self.real_page_record.scheduled_revision

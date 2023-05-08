@@ -37,7 +37,7 @@ class BaseListingView(TemplateView):
         # Get documents (filtered by user permission)
         documents = permission_policy.instances_user_has_any_permission_for(
             self.request.user, ["change", "delete"]
-        )
+        ).in_site(self.request.user.site_user.site)
 
         # Ordering
         if "ordering" in self.request.GET and self.request.GET["ordering"] in [
@@ -137,6 +137,7 @@ def add(request):
             request.POST, request.FILES, instance=doc, user=request.user
         )
         if form.is_valid():
+            form.instance.site_id = request.user.site_user.site_id
             form.save()
 
             messages.success(
@@ -169,7 +170,9 @@ def edit(request, document_id):
     Document = get_document_model()
     DocumentForm = get_document_form(Document)
 
-    doc = get_object_or_404(Document, id=document_id)
+    doc = get_object_or_404(
+        Document.objects.in_site(request.user.site_user.site), id=document_id
+    )
 
     if not permission_policy.user_has_permission_for_instance(
         request.user, "change", doc

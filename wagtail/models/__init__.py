@@ -1060,6 +1060,7 @@ class AbstractPage(
     """
 
     objects = PageManager()
+    IN_SITE_METHOD = "in_site"
 
     class Meta:
         abstract = True
@@ -4630,6 +4631,7 @@ class PageLogEntryManager(BaseLogEntryManager):
         q = Q(
             page__in=UserPagePermissionsProxy(user)
             .explorable_pages()
+            .in_site(user.site_user.site)
             .values_list("pk", flat=True)
         )
 

@@ -26,7 +26,9 @@ class Unpublish(UnpublishView):
         return super().setup(request, page_id, *args, **kwargs)
 
     def get_object(self, queryset=None):
-        return get_object_or_404(Page, id=self.pk).specific
+        return get_object_or_404(
+            Page.objects.in_site(self.request.user.site_user.site), id=self.pk
+        ).specific
 
     def get_object_display_title(self):
         return self.object.get_admin_display_title()

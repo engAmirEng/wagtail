@@ -22,7 +22,7 @@ def content_type_use(request, content_type_app_name, content_type_model_name):
     if not issubclass(page_class, Page):
         raise Http404
 
-    pages = page_class.objects.all().specific(defer=True)
+    pages = page_class.objects.in_site(request.user.site_user.site).specific(defer=True)
 
     paginator = Paginator(pages, per_page=10)
     pages = paginator.get_page(request.GET.get("p"))

@@ -284,12 +284,18 @@ class SiteGroupManager(models.Manager):
     def get_by_natural_key(self, name, site_id):
         return self.get(name=name, site_id=site_id)
 
+    def for_site(self, site: Site):
+        return self.filter(site=site)
+
 
 class SiteGroup(models.Model):
     """
     SiteGroup is a generic way of categorizing site_users to apply permissions, or
     some other label, to those users.
     """
+
+    IN_SITE_METHOD = "for_site"
+    PROVIDE_SITE_METHOD = "set_site"
 
     name = models.CharField(_("name"), max_length=150)
     permissions = models.ManyToManyField(
@@ -311,6 +317,9 @@ class SiteGroup(models.Model):
         constraints = [
             UniqueConstraint(fields=["name", "site"], name="unique_name_site")
         ]
+
+    def set_site(self, site):
+        self.site = site
 
     def __str__(self):
         return self.name

@@ -60,7 +60,7 @@ class CreateView(TemplateResponseMixin, ContextMixin, HookResponseMixin, View):
     def dispatch(
         self, request, content_type_app_name, content_type_model_name, parent_page_id
     ):
-        self.parent_page = get_object_or_404(Page, id=parent_page_id).specific
+        self.parent_page = get_object_or_404(Page.objects.in_site_root(request.user.site_user.site), id=parent_page_id).specific
         self.parent_page_perms = self.parent_page.permissions_for_user(
             self.request.user
         )

@@ -85,6 +85,9 @@ class ImageQuerySet(SearchableQuerySetMixin, models.QuerySet):
             )
         )
 
+    def in_site(self, site):
+        return self.filter(site=site)
+
 
 def get_upload_to(instance, filename):
     """
@@ -230,6 +233,12 @@ class WagtailImageField(models.ImageField):
 
 
 class AbstractImage(ImageFileMixin, CollectionMember, index.Indexed, models.Model):
+    IN_SITE_METHOD = "in_site"
+    PROVIDE_SITE_METHOD = "set_site"
+
+    site = models.ForeignKey(
+        "wagtailcore.Site", on_delete=models.CASCADE, related_name="site_%(class)s"
+    )
     title = models.CharField(max_length=255, verbose_name=_("title"))
     """ Use local ImageField with Willow support.  """
     file = WagtailImageField(
@@ -267,6 +276,9 @@ class AbstractImage(ImageFileMixin, CollectionMember, index.Indexed, models.Mode
     )
 
     objects = ImageQuerySet.as_manager()
+
+    def set_site(self, site):
+        self.site = site
 
     def _set_file_hash(self):
         with self.open_file() as f:

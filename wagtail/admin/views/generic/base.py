@@ -7,6 +7,7 @@ from django.views.generic.base import ContextMixin, TemplateResponseMixin
 
 from wagtail.admin import messages
 from wagtail.admin.utils import get_valid_next_url_from_request
+from wagtail.sites.utils import generic_filter_by_site
 
 
 class WagtailAdminTemplateMixin(TemplateResponseMixin, ContextMixin):
@@ -70,7 +71,12 @@ class BaseObjectMixin:
                 "Subclasses of wagtail.admin.views.generic.base.BaseObjectMixin must provide a "
                 "model attribute or a get_object method"
             )
-        return get_object_or_404(self.model, pk=self.pk)
+        return get_object_or_404(
+            generic_filter_by_site(
+                self.model.objects, self.request.user.site_user.site
+            ),
+            pk=self.pk,
+        )
 
 
 class BaseOperationView(BaseObjectMixin, View):

@@ -84,6 +84,7 @@ class BaseListingView(TemplateView):
             permission_policy.instances_user_has_any_permission_for(
                 self.request.user, ["change", "delete"]
             )
+            .in_site(self.request.user.site_user.site)
             .order_by(ordering)
             .select_related("collection")
             .prefetch_renditions("max-165x165")
@@ -184,7 +185,9 @@ def edit(request, image_id):
     Image = get_image_model()
     ImageForm = get_image_form(Image)
 
-    image = get_object_or_404(Image, id=image_id)
+    image = get_object_or_404(
+        Image.objects.in_site(request.user.site_user.site), id=image_id
+    )
 
     if not permission_policy.user_has_permission_for_instance(
         request.user, "change", image
@@ -289,7 +292,7 @@ def generate_url(request, image_id, filter_spec):
     # Get the image
     Image = get_image_model()
     try:
-        image = Image.objects.get(id=image_id)
+        image = Image.objects.in_site(request.user.site_user.site).get(id=image_id)
     except Image.DoesNotExist:
         return JsonResponse({"error": "Cannot find image."}, status=404)
 
@@ -327,7 +330,9 @@ def generate_url(request, image_id, filter_spec):
 
 
 def preview(request, image_id, filter_spec):
-    image = get_object_or_404(get_image_model(), id=image_id)
+    image = get_object_or_404(
+        get_image_model().objects.in_site(request.user.site_user.site), id=image_id
+    )
 
     try:
         response = HttpResponse()
@@ -382,6 +387,7 @@ def add(request):
         image = ImageModel(uploaded_by_user=request.user)
         form = ImageForm(request.POST, request.FILES, instance=image, user=request.user)
         if form.is_valid():
+            form.instance.site_id = request.user.site_user.site_id
             form.save()
 
             messages.success(

@@ -3,6 +3,7 @@ from django import forms
 from wagtail.admin.views.bulk_action import BulkAction
 from wagtail.admin.views.pages.search import page_filter_search
 from wagtail.models import Page
+from wagtail.sites.utils import generic_filter_by_site
 
 
 class DefaultPageForm(forms.Form):
@@ -14,7 +15,9 @@ class PageBulkAction(BulkAction):
     form_class = DefaultPageForm
 
     def get_all_objects_in_listing_query(self, parent_id):
-        listing_objects = self.model.objects.all()
+        listing_objects = generic_filter_by_site(
+            self.model.objects, self.request.user.site_user.site
+        )
 
         if parent_id is not None:
             listing_objects = listing_objects.get(id=parent_id).get_children()

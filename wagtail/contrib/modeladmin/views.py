@@ -48,6 +48,7 @@ from wagtail.log_actions import registry as log_registry
 from wagtail.models import Locale, RevisionMixin, TranslatableMixin
 
 from .forms import ParentChooserForm
+from ...sites.utils import generic_provide_by_site
 
 try:
     from django.contrib.admin.utils import lookup_spawns_duplicates
@@ -251,6 +252,7 @@ class ModelFormView(WMABaseView, FormView):
         }
 
     def form_valid(self, form):
+        generic_provide_by_site(form.instance, self.request.user.site_user.site)
         self.instance = form.save()
         messages.success(
             self.request,

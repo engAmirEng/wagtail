@@ -78,7 +78,9 @@ class PageHistoryView(ReportView):
 
     @method_decorator(user_passes_test(user_has_any_page_permission))
     def dispatch(self, request, *args, **kwargs):
-        self.page = get_object_or_404(Page, id=kwargs.pop("page_id")).specific
+        self.page = get_object_or_404(
+            Page.objects.in_site(request.user.site_user.site), id=kwargs.pop("page_id")
+        ).specific
 
         return super().dispatch(request, *args, **kwargs)
 

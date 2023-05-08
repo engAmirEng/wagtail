@@ -95,7 +95,7 @@ class PagesAdminAPIViewSet(PagesAPIViewSet):
         This is used as the base for get_queryset and is also used to find the
         parent pages when using the child_of and descendant_of filters as well.
         """
-        return Page.objects.all()
+        return Page.objects.in_site_root(self.request.user.site_user.site)
 
     def get_queryset(self):
         queryset = super().get_queryset()

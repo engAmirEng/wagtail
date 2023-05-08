@@ -44,6 +44,7 @@ class AddView(BaseAddView):
 
     def save_object(self, form):
         doc = form.save(commit=False)
+        doc.set_site(self.request.user.site_user.site)
         doc.uploaded_by_user = self.request.user
         doc._set_document_file_metadata()
         doc.save()
@@ -109,6 +110,7 @@ class CreateFromUploadedDocumentView(BaseCreateFromUploadView):
         self.object.file.save(
             os.path.basename(self.upload.file.name), self.upload.file.file, save=False
         )
+        form.instance.set_site(self.request.user.site_user.site)
         self.object.uploaded_by_user = self.request.user
 
         # form.save() would normally handle writing the image file metadata, but in this case the

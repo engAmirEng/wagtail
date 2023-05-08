@@ -199,7 +199,12 @@ class BrowseView(View):
 
     def get_object_list(self):
         # Get children of parent page (without streamfields)
-        pages = self.parent_page.get_children().defer_streamfields().specific()
+        pages = (
+            self.parent_page.get_children()
+            .in_site(self.request.user.site_user.site)
+            .defer_streamfields()
+            .specific()
+        )
         if self.i18n_enabled:
             pages = pages.select_related("locale")
         return pages

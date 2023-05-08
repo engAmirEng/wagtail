@@ -35,6 +35,7 @@ from .views import (
     IndexView,
     InspectView,
 )
+from ...sites.utils import generic_filter_by_site
 
 
 class WagtailRegisterable:
@@ -293,7 +294,9 @@ class ModelAdmin(WagtailRegisterable):
         Returns a QuerySet of all model instances that can be edited by the
         admin site.
         """
-        qs = self.model._default_manager.get_queryset()
+        qs = generic_filter_by_site(
+            self.model._default_manager.get_queryset(), request.user.site_user.site
+        )
         ordering = self.get_ordering(request)
         if ordering:
             qs = qs.order_by(*ordering)

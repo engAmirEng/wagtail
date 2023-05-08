@@ -14,7 +14,7 @@ from wagtail.models import Page, ReferenceIndex
 
 
 def delete(request, page_id):
-    page = get_object_or_404(Page, id=page_id).specific
+    page = get_object_or_404(Page.objects.in_site(request.user.site_user.site), id=page_id).specific
     if not page.permissions_for_user(request.user).can_delete():
         raise PermissionDenied
 

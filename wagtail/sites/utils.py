@@ -1,6 +1,11 @@
-from django.http import HttpRequest
+import logging
+
+from django.db.models import QuerySet, Model
+from django.http import HttpRequest, Http404
 
 from ..models.sites import AbstractSiteUser
+
+logger = logging.getLogger("wagtail.sites")
 
 
 def set_current_session_project(
@@ -10,6 +15,31 @@ def set_current_session_project(
         request.session["site_id"] = site_user.site_id
     request.user.site_user = site_user
     request._wagtail_site = site_user.site
+
+
+def generic_filter_by_site(queryset: QuerySet, site, r404: bool = False) -> QuerySet:
+    """
+    filter queryset for a specific site
+    """
+    query_method = getattr(queryset.model, "IN_SITE_METHOD", None)
+    if query_method:
+        queryset = getattr(queryset, query_method)(site)
+    else:
+        logger.warning(f"{str(queryset)} did not filtered by generic_filter_by_site")
+    if r404 and queryset.count() == 0:
+        raise Http404
+    return queryset
+
+
+def generic_provide_by_site(instance: Model, site):
+    """
+    filter queryset for a specific site
+    """
+    provide_method = getattr(instance, "PROVIDE_SITE_METHOD", None)
+    if provide_method:
+        getattr(instance, provide_method)(site)
+    else:
+        logger.warning(f"{instance} did not get provided by site")
 
 
 class SitePermissionsMonkeyPatchMixin:

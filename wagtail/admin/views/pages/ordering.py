@@ -6,7 +6,7 @@ from wagtail.models import Page
 
 
 def set_page_position(request, page_to_move_id):
-    page_to_move = get_object_or_404(Page, id=page_to_move_id)
+    page_to_move = get_object_or_404(Page.objects.in_site(request.user.site_user.site), id=page_to_move_id)
     parent_page = page_to_move.get_parent()
 
     if not parent_page.permissions_for_user(request.user).can_reorder_children():

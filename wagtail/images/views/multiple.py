@@ -150,6 +150,7 @@ class CreateFromUploadedImageView(BaseCreateFromUploadView):
         self.object.file.save(
             os.path.basename(self.upload.file.name), self.upload.file.file, save=False
         )
+        self.object.set_site(self.request.user.site_user.site)
         self.object.uploaded_by_user = self.request.user
 
         # form.save() would normally handle writing the image file metadata, but in this case the

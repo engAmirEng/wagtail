@@ -10,6 +10,7 @@ from django.views.decorators.vary import vary_on_headers
 from django.views.generic.base import TemplateView, View
 
 from wagtail.admin.views.generic import PermissionCheckedMixin
+from wagtail.sites.utils import generic_provide_by_site, generic_filter_by_site
 
 
 class AddView(PermissionCheckedMixin, TemplateView):
@@ -44,6 +45,7 @@ class AddView(PermissionCheckedMixin, TemplateView):
         return super().dispatch(request)
 
     def save_object(self, form):
+        generic_provide_by_site(form.instance, self.request.user.site_user.site)
         return form.save()
 
     def get_edit_object_form_context_data(self):
@@ -208,6 +210,7 @@ class EditView(View):
     edit_form_template_name = "wagtailadmin/generic/multiple_upload/edit_form.html"
 
     def save_object(self, form):
+        generic_provide_by_site(form.instance, self.request.user.site_user.site)
         form.save()
 
     def post(self, request, *args, **kwargs):
@@ -215,7 +218,10 @@ class EditView(View):
         self.model = self.get_model()
         self.form_class = self.get_edit_form_class()
 
-        self.object = get_object_or_404(self.model, pk=object_id)
+        self.object = get_object_or_404(
+            generic_filter_by_site(self.model.objects, request.user.site_user.site),
+            pk=object_id,
+        )
 
         if not self.permission_policy.user_has_permission_for_instance(
             request.user, "change", self.object
@@ -273,7 +279,10 @@ class DeleteView(View):
     def post(self, request, *args, **kwargs):
         object_id = kwargs[self.pk_url_kwarg]
         self.model = self.get_model()
-        self.object = get_object_or_404(self.model, pk=object_id)
+        self.object = get_object_or_404(
+            generic_filter_by_site(self.model.objects, request.user.site_user.site),
+            pk=object_id,
+        )
         object_id = (
             self.object.pk
         )  # retrieve object id cast to the appropriate type (usually int)
@@ -312,6 +321,7 @@ class CreateFromUploadView(View):
         self.object.file.save(
             os.path.basename(self.upload.file.name), self.upload.file.file, save=False
         )
+        generic_provide_by_site(self.object, self.request.user.site_user.site)
         self.object.uploaded_by_user = self.request.user
         form.save()
 

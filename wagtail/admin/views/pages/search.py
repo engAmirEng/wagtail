@@ -40,7 +40,11 @@ def page_filter_search(q, pages, all_pages=None, ordering=None):
 @vary_on_headers("X-Requested-With")
 @user_passes_test(user_has_any_page_permission)
 def search(request):
-    pages = all_pages = Page.objects.all().prefetch_related("content_type").specific()
+    pages = all_pages = (
+        Page.objects.in_site(request.user.site_user.site)
+        .prefetch_related("content_type")
+        .specific()
+    )
     show_locale_labels = getattr(settings, "WAGTAIL_I18N_ENABLED", False)
     if show_locale_labels:
         pages = pages.select_related("locale")

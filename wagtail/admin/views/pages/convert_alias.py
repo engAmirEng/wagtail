@@ -12,7 +12,11 @@ from wagtail.models import Page
 
 
 def convert_alias(request, page_id):
-    page = get_object_or_404(Page, id=page_id, alias_of_id__isnull=False).specific
+    page = get_object_or_404(
+        Page.objects.in_site(request.user.site_user.site),
+        id=page_id,
+        alias_of_id__isnull=False,
+    ).specific
     if not page.permissions_for_user(request.user).can_edit():
         raise PermissionDenied
 

@@ -30,6 +30,7 @@ from wagtail.models import DraftStateMixin, ReferenceIndex
 from wagtail.models.audit_log import ModelLogEntry
 from wagtail.search.backends import get_search_backend
 from wagtail.search.index import class_is_indexed
+from wagtail.sites.utils import generic_filter_by_site
 
 from .base import WagtailAdminTemplateMixin
 from .mixins import BeforeAfterHookMixin, HookResponseMixin, LocaleMixin, PanelMixin
@@ -184,9 +185,13 @@ class IndexView(
         if self.queryset is not None:
             queryset = self.queryset
             if isinstance(queryset, models.QuerySet):
-                queryset = queryset.all()
+                queryset = generic_filter_by_site(
+                    queryset, self.request.user.site_user.site
+                )
         elif self.model is not None:
-            queryset = self.model._default_manager.all()
+            queryset = generic_filter_by_site(
+                self.model._default_manager, self.request.user.site_user.site
+            )
         else:
             raise ImproperlyConfigured(
                 "%(cls)s is missing a QuerySet. Define "
@@ -550,6 +555,11 @@ class EditView(
         self.kwargs["pk"] = unquote(str(self.kwargs["pk"]))
         return super().get_object(queryset)
 
+    def get_queryset(self):
+        return generic_filter_by_site(
+            super(EditView, self).get_queryset(), self.request.user.site_user.site
+        )
+
     def get_page_subtitle(self):
         return str(self.object)
 
@@ -686,6 +696,11 @@ class DeleteView(
             self.kwargs[self.pk_url_kwarg] = self.args[0]
         self.kwargs[self.pk_url_kwarg] = unquote(str(self.kwargs[self.pk_url_kwarg]))
         return super().get_object(queryset)
+
+    def get_queryset(self):
+        return generic_filter_by_site(
+            super(DeleteView, self).get_queryset(), self.request.user.site_user.site
+        )
 
     def get_usage(self):
         if not self.usage_url:

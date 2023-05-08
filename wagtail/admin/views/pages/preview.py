@@ -8,7 +8,9 @@ from wagtail.models import Page
 
 
 def view_draft(request, page_id):
-    page = get_object_or_404(Page, id=page_id).get_latest_revision_as_object()
+    page = get_object_or_404(
+        Page.objects.in_site(request.user.site_user.site), id=page_id
+    ).get_latest_revision_as_object()
     perms = page.permissions_for_user(request.user)
     if not (perms.can_publish() or perms.can_edit()):
         raise PermissionDenied
@@ -28,7 +30,8 @@ class PreviewOnEdit(GenericPreviewOnEdit):
 
     def get_object(self):
         return get_object_or_404(
-            Page, id=self.kwargs["page_id"]
+            Page.objects.in_site(self.request.user.site_user.site),
+            id=self.kwargs["page_id"],
         ).get_latest_revision_as_object()
 
     def get_form(self, query_dict):
@@ -73,7 +76,9 @@ class PreviewOnCreate(PreviewOnEdit):
             raise Http404
 
         page = content_type.model_class()()
-        parent_page = get_object_or_404(Page, id=parent_page_id).specific
+        parent_page = get_object_or_404(
+            Page.objects.in_site(self.request.user.site_user.site), id=parent_page_id
+        ).specific
         # We need to populate treebeard's path / depth fields in order to
         # pass validation. We can't make these 100% consistent with the rest
         # of the tree without making actual database changes (such as

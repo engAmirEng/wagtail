@@ -8,6 +8,7 @@ from django.views.generic import FormView
 from wagtail import hooks
 from wagtail.admin import messages
 from wagtail.admin.utils import get_valid_next_url_from_request
+from wagtail.sites.utils import generic_filter_by_site
 
 
 class BulkAction(ABC, FormView):
@@ -56,7 +57,7 @@ class BulkAction(ABC, FormView):
 
     @classmethod
     def get_queryset(cls, model, object_ids):
-        return get_list_or_404(model, pk__in=object_ids)
+        return model.objects.filter(pk__in=object_ids)
 
     def check_perm(self, obj):
         return True
@@ -104,7 +105,11 @@ class BulkAction(ABC, FormView):
                 self.request.GET.get("childOf")
             )
 
-        for obj in self.get_queryset(self.model, object_ids):
+        for obj in generic_filter_by_site(
+            self.get_queryset(self.model, object_ids),
+            self.request.user.site_user.site,
+            r404=True,
+        ):
             if not self.check_perm(obj):
                 items_with_no_access.append(obj)
             else:

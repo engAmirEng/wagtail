@@ -414,6 +414,15 @@ class PageQuerySet(SearchableQuerySetMixin, TreeQuerySet):
         """
         return self.descendant_of(site.root_page, inclusive=True)
 
+    def in_site_root(self, site):
+        """
+        This filters the QuerySet to only contain pages within the specified site
+        plus the root
+        """
+        return self.filter(
+            Q(id__in=self.in_site(site).values_list("id", flat=True)) | Q(depth=1)
+        )
+
     def translation_of_q(self, page, inclusive):
         q = Q(translation_key=page.translation_key)
 

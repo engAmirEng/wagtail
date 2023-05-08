@@ -13,7 +13,9 @@ from wagtail.models import Page
 
 
 def move_choose_destination(request, page_to_move_id):
-    page_to_move = get_object_or_404(Page, id=page_to_move_id)
+    page_to_move = get_object_or_404(
+        Page.objects.in_site(request.user.site_user.site), id=page_to_move_id
+    )
     page_perms = page_to_move.permissions_for_user(request.user)
     if not page_perms.can_move():
         raise PermissionDenied
@@ -48,7 +50,9 @@ def move_choose_destination(request, page_to_move_id):
 
 
 def move_confirm(request, page_to_move_id, destination_id):
-    page_to_move = get_object_or_404(Page, id=page_to_move_id).specific
+    page_to_move = get_object_or_404(
+        Page.objects.in_site(request.user.site_user.site), id=page_to_move_id
+    ).specific
     # Needs .specific_deferred because the .get_admin_display_title method is called in template
     destination = get_object_or_404(Page, id=destination_id).specific_deferred
 

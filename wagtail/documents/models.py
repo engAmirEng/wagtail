@@ -18,10 +18,17 @@ from wagtail.utils.file import hash_filelike
 
 
 class DocumentQuerySet(SearchableQuerySetMixin, models.QuerySet):
-    pass
+    def in_site(self, site):
+        return self.filter(site=site)
 
 
 class AbstractDocument(CollectionMember, index.Indexed, models.Model):
+    IN_SITE_METHOD = "in_site"
+    PROVIDE_SITE_METHOD = "set_site"
+
+    site = models.ForeignKey(
+        "wagtailcore.Site", on_delete=models.CASCADE, related_name="site_%(class)s"
+    )
     title = models.CharField(max_length=255, verbose_name=_("title"))
     file = models.FileField(upload_to="documents", verbose_name=_("file"))
     created_at = models.DateTimeField(verbose_name=_("created at"), auto_now_add=True)
@@ -56,6 +63,9 @@ class AbstractDocument(CollectionMember, index.Indexed, models.Model):
         ),
         index.FilterField("uploaded_by_user"),
     ]
+
+    def set_site(self, site):
+        self.site = site
 
     def clean(self):
         """

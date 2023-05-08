@@ -25,7 +25,9 @@ def revisions_index(request, page_id):
 
 
 def revisions_revert(request, page_id, revision_id):
-    page = get_object_or_404(Page, id=page_id).specific
+    page = get_object_or_404(
+        Page.objects.in_site(request.user.site_user.site), id=page_id
+    ).specific
     page_perms = page.permissions_for_user(request.user)
     if not page_perms.can_edit():
         raise PermissionDenied
@@ -108,7 +110,9 @@ class RevisionsView(PreviewRevision):
         return super().setup(request, page_id, revision_id, *args, **kwargs)
 
     def get_object(self):
-        page = get_object_or_404(Page, id=self.pk).specific
+        page = get_object_or_404(
+            Page.objects.in_site(self.request.user.site_user.site), id=self.pk
+        ).specific
 
         perms = page.permissions_for_user(self.request.user)
         if not (perms.can_publish() or perms.can_edit()):
@@ -129,7 +133,9 @@ class RevisionsCompare(RevisionsCompareView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_object(self, queryset=None):
-        return get_object_or_404(Page, id=self.pk).specific
+        return get_object_or_404(
+            Page.objects.in_site(self.request.user.site_user.site), id=self.pk
+        ).specific
 
     def get_edit_handler(self):
         return self.object.get_edit_handler()
@@ -150,7 +156,9 @@ class RevisionsUnschedule(RevisionsUnscheduleView):
         return super().setup(request, page_id, revision_id, *args, **kwargs)
 
     def get_object(self, queryset=None):
-        page = get_object_or_404(Page, id=self.pk).specific
+        page = get_object_or_404(
+            Page.objects.in_site(self.request.user.site_user.site), id=self.pk
+        ).specific
 
         user_perms = UserPagePermissionsProxy(self.request.user)
         if not user_perms.for_page(page).can_unschedule():

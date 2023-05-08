@@ -14,7 +14,7 @@ from wagtail.models import Page
 
 @user_passes_test(user_has_any_page_permission)
 def copy(request, page_id):
-    page = Page.objects.get(id=page_id)
+    page = Page.objects.in_site(request.user.site_user.site).get(id=page_id)
 
     # Parent page defaults to parent of source page
     parent_page = page.get_parent()

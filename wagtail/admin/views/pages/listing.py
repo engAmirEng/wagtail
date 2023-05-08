@@ -31,7 +31,9 @@ def index(request, parent_page_id=None):
 
     user_perms = UserPagePermissionsProxy(request.user)
     pages = (
-        parent_page.get_children().prefetch_related("content_type", "sites_rooted_here")
+        parent_page.get_children()
+        .in_site_root(request.user.site_user.site)
+        .prefetch_related("content_type", "sites_rooted_here")
         & user_perms.explorable_pages()
     )
 

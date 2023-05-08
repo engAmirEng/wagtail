@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy
 from wagtail.admin.views.generic import CreateView, DeleteView, EditView, IndexView
 from wagtail.compat import AUTH_USER_APP_LABEL, AUTH_USER_MODEL_NAME
 from wagtail.permission_policies import ModelPermissionPolicy
+from wagtail.sites.utils import generic_filter_by_site
 from wagtail.users.forms import UserCreationForm, UserEditForm
 from wagtail.users.utils import user_can_delete_user
 from wagtail.utils.loading import get_custom_form
@@ -109,9 +110,7 @@ class Index(IndexView):
         if self.get_ordering() == "username":
             users = users.order_by(User.USERNAME_FIELD)
 
-        users = users.filter(
-            user_siteusers__site_id=self.request.user.site_user.site_id
-        )
+        users = generic_filter_by_site(users, self.request.user.site_user.site)
 
         return users
 
