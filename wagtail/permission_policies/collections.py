@@ -3,7 +3,7 @@ from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 from django.db.models import Q
 
-from wagtail.models import Collection, GroupCollectionPermission
+from wagtail.models import Collection, GroupCollectionPermission, SiteGroup
 
 from .base import BaseDjangoAuthPermissionPolicy
 
@@ -86,7 +86,7 @@ class CollectionPermissionLookupMixin:
         permissions = self._get_permission_objects_for_actions(actions)
         # Find all groups with GroupCollectionPermission records for
         # any of these permissions
-        groups = Group.objects.filter(
+        groups = SiteGroup.objects.filter(
             collection_permissions__permission__in=permissions,
         )
 
@@ -95,7 +95,9 @@ class CollectionPermissionLookupMixin:
             groups = groups.filter(collection_permissions__collection__in=collections)
 
         # Find all users who are superusers or in any of these groups, and are active
-        return (Q(is_superuser=True) | Q(groups__in=groups)) & Q(is_active=True)
+        return (
+            Q(user_siteusers__is_superuser=True) | Q(user_siteusers__groups__in=groups)
+        ) & Q(user_siteusers__is_active=True)
 
     def _users_with_perm(self, actions, collection=None):
         """
