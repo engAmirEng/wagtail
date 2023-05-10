@@ -12,7 +12,7 @@ from django.contrib.auth.models import (
 from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.core.validators import MinLengthValidator
-from django.db import models
+from django.db import models, transaction
 from django.db.models import (
     Case,
     IntegerField,
@@ -142,12 +142,19 @@ class Site(models.Model):
     def clean(self):
         self.hostname = self.hostname.lower()
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, create_site_user_for=None, **kwargs):
         if not self.pk:
             from wagtail.models import Page
 
-            self.root_page = Page.add_root(title="Root")
-        return super(Site, self).save(*args, *kwargs)
+            with transaction.atomic():
+                self.root_page = Page.add_root(title="Root")
+                super(Site, self).save(*args, *kwargs)
+                if create_site_user_for and self.pk:
+                    SiteUser = get_site_user_model()
+                    SiteUser.objects.create_site_creator(create_site_user_for, self)
+            return self
+        super(Site, self).save(*args, **kwargs)
+        return self
 
     @staticmethod
     def find_for_request(request):
@@ -324,6 +331,11 @@ def _site_user_has_module_perms(site_user, app_label):
     return False
 
 
+class SiteUserManager(models.Manager):
+    def create_site_creator(self, creator, site: Site):
+        return self.create(site=site, user=creator, is_active=True, is_superuser=True)
+
+
 class AbstractSiteUser(models.Model):
     site = models.ForeignKey(
         Site, related_name="site_siteusers", on_delete=models.CASCADE
@@ -369,6 +381,8 @@ class AbstractSiteUser(models.Model):
         help_text=_("Specific permissions for this user."),
         related_name="permission_siteusers",
     )
+
+    objects = SiteUserManager()
 
     class Meta:
         swappable = "SITE_USER_MODEL"

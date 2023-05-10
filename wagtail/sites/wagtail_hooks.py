@@ -1,17 +1,26 @@
 from django.contrib.auth.models import Permission
-from django.urls import reverse
+from django.urls import reverse, path
 from django.utils.translation import gettext_lazy as _
 
 from wagtail import hooks
 from wagtail.admin.menu import MenuItem
 from wagtail.permissions import site_permission_policy
 
-from .views import SiteViewSet
+from .views import SiteViewSet, site_workon_view
 
 
 @hooks.register("register_admin_viewset")
 def register_viewset():
     return SiteViewSet("wagtailsites", url_prefix="sites")
+
+
+@hooks.register("register_admin_urls")
+def register_view():
+    return [path(
+        "sites/workon/<int:site_id>/",
+        site_workon_view,
+        name="workon"
+    )]
 
 
 class SitesMenuItem(MenuItem):

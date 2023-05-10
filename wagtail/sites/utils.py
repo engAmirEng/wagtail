@@ -26,7 +26,7 @@ def generic_filter_by_site(queryset: QuerySet, site, r404: bool = False) -> Quer
         queryset = getattr(queryset, query_method)(site)
     else:
         logger.warning(f"{str(queryset)} did not filtered by generic_filter_by_site")
-    if r404 and queryset.count() == 0:
+    if r404 and not queryset.exists():
         raise Http404
     return queryset
 
