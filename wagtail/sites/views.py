@@ -12,20 +12,18 @@ class IndexView(generic.IndexView):
     page_title = _("Sites")
     add_item_label = _("Add a site")
     context_object_name = "sites"
-    default_ordering = "hostname"
+    default_ordering = "sitename"
     columns = [
         TitleColumn(
-            "hostname",
-            label=_("Site"),
-            sort_key="hostname",
+            "sitename",
+            label=_("@sitename"),
+            sort_key="sitename",
             url_name="wagtailsites:edit",
         ),
+        Column("hostname", sort_key="hostname"),
         Column("port", sort_key="port"),
         Column("site_name"),
         Column("root_page"),
-        StatusFlagColumn(
-            "is_default_site", label=_("Default?"), true_label=_("Default")
-        ),
     ]
 
 

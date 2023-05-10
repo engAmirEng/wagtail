@@ -18,4 +18,4 @@ class SiteForm(forms.ModelForm):
 
     class Meta:
         model = Site
-        fields = ("hostname", "port", "site_name", "root_page", "is_default_site")
+        fields = ("sitename", "site_name", "hostname", "port", "root_page")

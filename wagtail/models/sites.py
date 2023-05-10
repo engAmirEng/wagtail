@@ -1,3 +1,4 @@
+import logging
 from collections import namedtuple
 
 from django.apps import apps
@@ -10,6 +11,7 @@ from django.contrib.auth.models import (
 )
 from django.core.cache import cache
 from django.core.exceptions import ValidationError, ImproperlyConfigured
+from django.core.validators import MinLengthValidator
 from django.db import models
 from django.db.models import Case, IntegerField, Q, When, UniqueConstraint
 from django.db.models.functions import Lower
@@ -17,12 +19,12 @@ from django.http.request import split_domain_port, HttpRequest
 from django.utils.itercompat import is_iterable
 from django.utils.translation import gettext_lazy as _
 
+logger = logging.getLogger("wagtail.sites")
+
 SiteUser = None
 
 MATCH_HOSTNAME_PORT = 0
-MATCH_HOSTNAME_DEFAULT = 1
-MATCH_DEFAULT = 2
-MATCH_HOSTNAME = 3
+MATCH_HOSTNAME = 1
 
 
 def get_site_for_hostname(hostname, port):
@@ -36,36 +38,24 @@ def get_site_for_hostname(hostname, port):
                 # put exact hostname+port match first
                 When(hostname=hostname, port=port, then=MATCH_HOSTNAME_PORT),
                 # then put hostname+default (better than just hostname or just default)
-                When(
-                    hostname=hostname, is_default_site=True, then=MATCH_HOSTNAME_DEFAULT
-                ),
-                # then match default with different hostname. there is only ever
-                # one default, so order it above (possibly multiple) hostname
-                # matches so we can use sites[0] below to access it
-                When(is_default_site=True, then=MATCH_DEFAULT),
+                When(hostname=hostname, then=MATCH_HOSTNAME),
                 # because of the filter below, if it's not default then its a hostname match
-                default=MATCH_HOSTNAME,
                 output_field=IntegerField(),
             )
         )
-        .filter(Q(hostname=hostname) | Q(is_default_site=True))
+        .filter(hostname=hostname)
         .order_by("match")
         .select_related("root_page")
     )
 
     if sites:
         # if there's a unique match or hostname (with port or default) match
-        if len(sites) == 1 or sites[0].match in (
-            MATCH_HOSTNAME_PORT,
-            MATCH_HOSTNAME_DEFAULT,
-        ):
+        if len(sites) == 1 or sites[0].match == MATCH_HOSTNAME_PORT:
             return sites[0]
-
-        # if there is a default match with a different hostname, see if
-        # there are many hostname matches. if only 1 then use that instead
-        # otherwise we use the default
-        if sites[0].match == MATCH_DEFAULT:
-            return sites[len(sites) == 2]
+        logger.warning(
+            f"requested site for {hostname}:{port} has more than one candidate"
+        )
+        return sites[0]
 
     raise Site.DoesNotExist()
 
@@ -97,6 +87,13 @@ class Site(models.Model):
             " (e.g. development on port 8000). Does not affect request handling (so port forwarding still works)."
         ),
     )
+    sitename = models.SlugField(
+        verbose_name=_("sitename"),
+        max_length=31,
+        unique=True,
+        validators=[MinLengthValidator(5)],
+        help_text=_("The username for the site."),
+    )
     site_name = models.CharField(
         verbose_name=_("site name"),
         max_length=255,
@@ -109,13 +106,13 @@ class Site(models.Model):
         related_name="sites_rooted_here",
         on_delete=models.CASCADE,
     )
-    is_default_site = models.BooleanField(
-        verbose_name=_("is default site"),
-        default=False,
-        help_text=_(
-            "If true, this site will handle requests for all other hostnames that do not have a site entry of their own"
-        ),
-    )
+
+    @property
+    def is_default_site(self):
+        """
+        Monkey fix until I find the problem
+        """
+        return False
 
     objects = SiteManager()
 
@@ -128,15 +125,10 @@ class Site(models.Model):
         return (self.hostname, self.port)
 
     def __str__(self):
-        default_suffix = " [{}]".format(_("default"))
         if self.site_name:
-            return self.site_name + (default_suffix if self.is_default_site else "")
+            return self.site_name
         else:
-            return (
-                self.hostname
-                + ("" if self.port == 80 else (":%d" % self.port))
-                + (default_suffix if self.is_default_site else "")
-            )
+            return self.hostname + ("" if self.port == 80 else (":%d" % self.port))
 
     def clean(self):
         self.hostname = self.hostname.lower()
@@ -171,12 +163,10 @@ class Site(models.Model):
     def _find_for_request(request):
         hostname = split_domain_port(request.get_host())[0]
         port = request.get_port()
-        site = None
         try:
             site = get_site_for_hostname(hostname, port)
         except Site.DoesNotExist:
-            pass
-            # copy old SiteMiddleware behaviour
+            raise
         return site
 
     @property
@@ -188,31 +178,7 @@ class Site(models.Model):
         else:
             return "http://%s:%d" % (self.hostname, self.port)
 
-    def clean_fields(self, exclude=None):
-        super().clean_fields(exclude)
-        # Only one site can have the is_default_site flag set
-        try:
-            default = Site.objects.get(is_default_site=True)
-        except Site.DoesNotExist:
-            pass
-        except Site.MultipleObjectsReturned:
-            raise
-        else:
-            if self.is_default_site and self.pk != default.pk:
-                raise ValidationError(
-                    {
-                        "is_default_site": [
-                            _(
-                                "%(hostname)s is already configured as the default site."
-                                " You must unset that before you can save this site as default."
-                            )
-                            % {"hostname": default.hostname}
-                        ]
-                    }
-                )
-
-    @staticmethod
-    def get_site_root_paths():
+    def get_site_root_paths(self):
         """
         Return a list of `SiteRootPath` instances, most specific path
         first - used to translate url_paths into actual URLs with hostnames
@@ -225,53 +191,27 @@ class Site(models.Model):
         - `root_url` - The scheme/domain name of the site (for example 'https://www.example.com/')
         - `language_code` - The language code of the site (for example 'en')
         """
-        result = cache.get(
-            SITE_ROOT_PATHS_CACHE_KEY, version=SITE_ROOT_PATHS_CACHE_VERSION
-        )
-
-        if result is None:
-            result = []
-
-            for site in Site.objects.select_related(
-                "root_page", "root_page__locale"
-            ).order_by("-root_page__url_path", "-is_default_site", "hostname"):
-                if getattr(settings, "WAGTAIL_I18N_ENABLED", False):
-                    result.extend(
-                        [
-                            SiteRootPath(
-                                site.id,
-                                root_page.url_path,
-                                site.root_url,
-                                root_page.locale.language_code,
-                            )
-                            for root_page in site.root_page.get_translations(
-                                inclusive=True
-                            ).select_related("locale")
-                        ]
-                    )
-                else:
-                    result.append(
-                        SiteRootPath(
-                            site.id,
-                            site.root_page.url_path,
-                            site.root_url,
-                            site.root_page.locale.language_code,
-                        )
-                    )
-
-            cache.set(
-                SITE_ROOT_PATHS_CACHE_KEY,
-                result,
-                3600,
-                version=SITE_ROOT_PATHS_CACHE_VERSION,
-            )
-
+        if getattr(settings, "WAGTAIL_I18N_ENABLED", False):
+            return [
+                SiteRootPath(
+                    self.id,
+                    root_page.url_path,
+                    self.root_url,
+                    root_page.locale.language_code,
+                )
+                for root_page in self.root_page.get_translations(
+                    inclusive=True
+                ).select_related("locale")
+            ]
         else:
-            # Convert the cache result to a list of SiteRootPath tuples, as some
-            # cache backends (e.g. Redis) don't support named tuples.
-            result = [SiteRootPath(*result) for result in result]
-
-        return result
+            return [
+                SiteRootPath(
+                    self.id,
+                    self.root_page.url_path,
+                    self.root_url,
+                    self.root_page.locale.language_code,
+                )
+            ]
 
     @staticmethod
     def clear_site_root_paths_cache():
