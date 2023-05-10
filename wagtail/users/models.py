@@ -86,7 +86,10 @@ class UserProfile(models.Model):
 
     @classmethod
     def get_for_user(cls, user):
-        return cls.objects.get_or_create(user=user)[0]
+        p = cls.objects.get_or_create(user=user)[0]
+        # set the cached properties in user object
+        p.user = user
+        return p
 
     def get_preferred_language(self):
         return self.preferred_language or get_language()
