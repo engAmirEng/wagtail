@@ -10,14 +10,22 @@ from django.contrib.auth.models import (
     _user_has_module_perms,
 )
 from django.core.cache import cache
-from django.core.exceptions import ValidationError, ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.core.validators import MinLengthValidator
 from django.db import models
-from django.db.models import Case, IntegerField, Q, When, UniqueConstraint
+from django.db.models import (
+    Case,
+    IntegerField,
+    Q,
+    When,
+    UniqueConstraint,
+    CheckConstraint,
+)
 from django.db.models.functions import Lower
 from django.http.request import split_domain_port, HttpRequest
 from django.utils.itercompat import is_iterable
 from django.utils.translation import gettext_lazy as _
+
 
 logger = logging.getLogger("wagtail.sites")
 
@@ -120,6 +128,7 @@ class Site(models.Model):
         unique_together = ("hostname", "port")
         verbose_name = _("site")
         verbose_name_plural = _("sites")
+        constraints = [CheckConstraint(check=Q(depth=1), name="root_page_be_root")]
 
     def natural_key(self):
         return (self.hostname, self.port)
@@ -132,6 +141,13 @@ class Site(models.Model):
 
     def clean(self):
         self.hostname = self.hostname.lower()
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            from wagtail.models import Page
+
+            self.root_page = Page.add_root(title="Root")
+        return super(Site, self).save(*args, *kwargs)
 
     @staticmethod
     def find_for_request(request):

@@ -5,11 +5,12 @@ from wagtail.models import Page
 
 def get_pages_with_direct_explore_permission(user):
     # Get all pages that the user has direct add/edit/publish/lock permission on
+    site_pages = Page.objects.descendant_of(user.site_user.site.root_page, inclusive=True)
     if user.site_user.is_superuser:
         # superuser has implicit permission on the root node
-        return Page.objects.filter(depth=1)
+        return site_pages.filter(depth=1)
     else:
-        return Page.objects.filter(
+        return site_pages.filter(
             group_permissions__group__in=user.site_user.groups.all(),
             group_permissions__permission_type__in=["add", "edit", "publish", "lock"],
         )

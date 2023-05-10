@@ -2016,7 +2016,9 @@ class Page(AbstractPage, index.Indexed, ClusterableModel, metaclass=PageBase):
         try:
             return cache_object._wagtail_cached_site_root_paths
         except AttributeError:
-            cache_object._wagtail_cached_site_root_paths = Site.get_site_root_paths()
+            cache_object._wagtail_cached_site_root_paths = (
+                self.get_site().get_site_root_paths()
+            )
             return cache_object._wagtail_cached_site_root_paths
 
     def _get_relevant_site_root_paths(self, cache_object=None):
@@ -2174,16 +2176,7 @@ class Page(AbstractPage, index.Indexed, ClusterableModel, metaclass=PageBase):
         """
         Return the Site object that this page belongs to.
         """
-
-        url_parts = self.get_url_parts()
-
-        if url_parts is None:
-            # page is not routable
-            return
-
-        site_id, root_url, page_path = url_parts
-
-        return Site.objects.get(id=site_id)
+        return self.get_root().sites_rooted_here.first()
 
     @classmethod
     def get_indexed_objects(cls):
