@@ -331,7 +331,51 @@ def _site_user_has_module_perms(site_user, app_label):
     return False
 
 
+class SiteUserQuerySet(models.QuerySet):
+    def with_perm(
+        self, perm, is_active=True, include_superusers=True, backend=None, obj=None
+    ):
+        if backend is None:
+            backends = auth._get_backends(return_tuples=True)
+            if len(backends) == 1:
+                backend, _ = backends[0]
+            else:
+                wagtail_site_backend = [
+                    i
+                    for i in backends
+                    if i[1] == "wagtail.sites.backends.SiteAuthBackend"
+                ]
+                if not wagtail_site_backend:
+                    raise ValueError("No auth backend found")
+                backend, _ = wagtail_site_backend[0]
+        elif not isinstance(backend, str):
+            raise TypeError(
+                "backend must be a dotted import path string (got %r)." % backend
+            )
+        else:
+            backend = auth.load_backend(backend)
+        if hasattr(backend, "site_with_perm"):
+            return backend.site_with_perm(
+                perm,
+                is_active=is_active,
+                include_superusers=include_superusers,
+                obj=obj,
+            )
+        return self.none()
+
+    def siteusers_to_manage(self, user):
+        """
+        returns SiteUsers that can log into the panel
+        """
+        return self.with_perm(
+            "wagtailadmin.access_admin", is_active=True, include_superusers=True
+        ).filter(user=user)
+
+
 class SiteUserManager(models.Manager):
+    def get_queryset(self):
+        return SiteUserQuerySet(self.model, using=self._db)
+
     def create_site_creator(self, creator, site: Site):
         return self.create(site=site, user=creator, is_active=True, is_superuser=True)
 
@@ -411,13 +455,14 @@ class AbstractSiteUser(models.Model):
         site_id = request.session.get("site_id")
         if not site_id:
             # To keep the user working on whatever site they want
-            site_id = request.session[
-                "site_id"
-            ] = request.user.user_siteusers.last().site_id
+            site_id = request.session["site_id"] = (
+                SiteUser.objects.siteusers_to_manage(request.user).last().site_id
+            )
         site_user = (
-            SiteUser.objects.filter(site_id=site_id, user_id=request.user.id)
+            SiteUser.objects.all()
+            .siteusers_to_manage(request.user)
             .select_related("site")
-            .get()
+            .get(site_id=site_id)
         )
         if (
             not getattr(request.user, "site_user", None)
