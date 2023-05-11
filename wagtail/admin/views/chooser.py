@@ -201,7 +201,6 @@ class BrowseView(View):
         # Get children of parent page (without streamfields)
         pages = (
             self.parent_page.get_children()
-            .in_site(self.request.user.site_user.site)
             .defer_streamfields()
             .specific()
         )
@@ -241,15 +240,22 @@ class BrowseView(View):
 
         # Find parent page
         if parent_page_id:
-            self.parent_page = get_object_or_404(Page, id=parent_page_id)
+            self.parent_page = get_object_or_404(
+                request.user.site_user.site.root_page.get_descendants(),
+                id=parent_page_id,
+            )
         elif self.desired_classes == (Page,):
             # Just use the root page
-            self.parent_page = Page.get_first_root_node()
+            self.parent_page = request.user.site_user.site.root_page
         else:
             # Find the highest common ancestor for the specific classes passed in
             # In many cases, such as selecting an EventPage under an EventIndex,
             # this will help the administrator find their page quicker.
-            all_desired_pages = Page.objects.all().type(*self.desired_classes)
+            all_desired_pages = (
+                request.user.site_user.site.root_page.get_descendants().type(
+                    *self.desired_classes
+                )
+            )
             self.parent_page = all_desired_pages.first_common_ancestor()
 
         self.parent_page = self.parent_page.specific
