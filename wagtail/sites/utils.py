@@ -1,6 +1,7 @@
 import logging
+from typing import Union
 
-from django.db.models import QuerySet, Model
+from django.db.models import QuerySet, Model, Manager
 from django.http import HttpRequest, Http404
 
 from ..models.sites import AbstractSiteUser
@@ -17,12 +18,15 @@ def set_current_session_project(
     request._wagtail_site = site_user.site
 
 
-def generic_filter_by_site(queryset: QuerySet, site, r404: bool = False) -> QuerySet:
+def generic_filter_by_site(
+    queryset: Union[QuerySet, Manager], site, r404: bool = False
+) -> QuerySet:
     """
     filter queryset for a specific site
     """
     query_method = getattr(queryset.model, "IN_SITE_METHOD", None)
     if query_method:
+        queryset = queryset if isinstance(queryset, QuerySet) else queryset.all()
         queryset = getattr(queryset, query_method)(site)
     else:
         logger.warning(f"{str(queryset)} did not filtered by generic_filter_by_site")

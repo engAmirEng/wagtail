@@ -241,14 +241,19 @@ class Site(models.Model):
         cache.delete(SITE_ROOT_PATHS_CACHE_KEY, version=SITE_ROOT_PATHS_CACHE_VERSION)
 
 
+class SiteGroupQuerySet(models.QuerySet):
+    def for_site(self, site: Site):
+        return self.filter(site=site)
+
+
 class SiteGroupManager(models.Manager):
     use_in_migrations = True
 
+    def get_queryset(self):
+        return SiteGroupQuerySet(self.model, using=self._db)
+
     def get_by_natural_key(self, name, site_id):
         return self.get(name=name, site_id=site_id)
-
-    def for_site(self, site: Site):
-        return self.filter(site=site)
 
 
 class SiteGroup(models.Model):
@@ -456,7 +461,7 @@ class AbstractSiteUser(models.Model):
         if not site_id:
             # To keep the user working on whatever site they want
             site_id = request.session["site_id"] = (
-                SiteUser.objects.siteusers_to_manage(request.user).last().site_id
+                SiteUser.objects.all().siteusers_to_manage(request.user).last().site_id
             )
         site_user = (
             SiteUser.objects.all()
