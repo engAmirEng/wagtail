@@ -32,6 +32,7 @@ from wagtail.documents.views.bulk_actions import (
 )
 from wagtail.documents.views.chooser import viewset as chooser_viewset
 from wagtail.models import BaseViewRestriction
+from wagtail.sites.utils import generic_filter_by_site
 from wagtail.wagtail_hooks import require_wagtail_login
 
 
@@ -112,7 +113,9 @@ class DocumentsSummaryItem(SummaryItem):
         site_name = get_site_for_user(self.request.user)["site_name"]
 
         return {
-            "total_docs": get_document_model().objects.count(),
+            "total_docs": generic_filter_by_site(
+                get_document_model().objects, self.request.user.site_user.site
+            ).count(),
             "site_name": site_name,
         }
 

@@ -27,6 +27,7 @@ from wagtail.images.views.bulk_actions import (
     DeleteBulkAction,
 )
 from wagtail.images.views.chooser import viewset as chooser_viewset
+from wagtail.sites.utils import generic_filter_by_site
 
 
 @hooks.register("register_admin_urls")
@@ -140,7 +141,9 @@ class ImagesSummaryItem(SummaryItem):
         site_name = get_site_for_user(self.request.user)["site_name"]
 
         return {
-            "total_images": get_image_model().objects.count(),
+            "total_images": generic_filter_by_site(
+                get_image_model().objects, self.request.user.site_user.site
+            ).count(),
             "site_name": site_name,
         }
 
