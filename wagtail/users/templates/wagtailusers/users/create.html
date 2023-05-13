@@ -60,6 +60,7 @@
                 >
                     <ul class="fields">
                         {% include "wagtailadmin/shared/field_as_li.html" with field=form.site_is_superuser %}
+                        {% include "wagtailadmin/shared/field_as_li.html" with field=form.site_is_active %}
                         {% include "wagtailadmin/shared/field_as_li.html" with field=form.site_groups %}
                         <li><button class="button">{% trans "Add user" %}</button></li>
                     </ul>

@@ -42,9 +42,6 @@
                             {% if form.password2 %}
                                 {% include "wagtailadmin/shared/field_as_li.html" with field=form.password2 %}
                             {% endif %}
-                            {% if form.site_is_active %}
-                                {% include "wagtailadmin/shared/field_as_li.html" with field=form.site_is_active %}
-                            {% endif %}
 
                         {% endblock fields %}
                         <li>
@@ -65,6 +62,10 @@
                     <ul class="fields">
                         {% if form.site_is_superuser %}
                             {% include "wagtailadmin/shared/field_as_li.html" with field=form.site_is_superuser %}
+                        {% endif %}
+
+                        {% if form.site_is_active %}
+                            {% include "wagtailadmin/shared/field_as_li.html" with field=form.site_is_active %}
                         {% endif %}
 
                         {% include "wagtailadmin/shared/field_as_li.html" with field=form.site_groups %}

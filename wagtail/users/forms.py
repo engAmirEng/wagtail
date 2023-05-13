@@ -123,6 +123,7 @@ class UserForm(UsernameForm):
     site_is_active = forms.BooleanField(
         label=_("Active"),
         required=False,
+        initial=True,
         help_text=_(
             "Designates whether this user should be treated as active. Unselect this instead of deleting accounts."
         ),
@@ -145,7 +146,7 @@ class UserForm(UsernameForm):
             self.fields[
                 "site_is_superuser"
             ].initial = self.site_user_instance.is_superuser
-            self.fields["site_is_active"].initial = self.site_user_instance.is_active
+            self.initial.update(site_is_active=self.site_user_instance.is_active)
 
         if self.password_enabled:
             if self.password_required:
