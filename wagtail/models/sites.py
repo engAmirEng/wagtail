@@ -459,16 +459,23 @@ class AbstractSiteUser(models.Model):
 
         site_id = request.session.get("site_id")
         if not site_id:
-            # To keep the user working on whatever site they want
-            site_id = request.session["site_id"] = (
-                SiteUser.objects.all().siteusers_to_manage(request.user).last().site_id
+            try:
+                # To keep the user working on whatever site they want
+                site_id = request.session["site_id"] = (
+                    SiteUser.objects.all().siteusers_to_manage(request.user).last().site_id
+                )
+            except AttributeError:
+                return
+        try:
+            site_user = (
+                SiteUser.objects.all()
+                .siteusers_to_manage(request.user)
+                .select_related("site")
+                .get(site_id=site_id)
             )
-        site_user = (
-            SiteUser.objects.all()
-            .siteusers_to_manage(request.user)
-            .select_related("site")
-            .get(site_id=site_id)
-        )
+        except SiteUser.DoesNotExist:
+            del request.session["site_id"]
+            return
         if (
             not getattr(request.user, "site_user", None)
             or request.user.site_user.site_id != site_id
