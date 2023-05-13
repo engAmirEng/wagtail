@@ -133,7 +133,7 @@ class UserObjectsInWorkflowModerationPanel(Component):
                 Page.objects.filter(
                     owner=request.user,
                     id=Cast(OuterRef("object_id"), output_field=IntegerField()),
-                )
+                ).in_site(request.user.site_user.site)
             )
             # Find in progress workflow states which are either requested by the user or on pages owned by the user
             context["workflow_states"] = (
@@ -223,7 +223,7 @@ class LockedPagesPanel(Component):
                 "locked_pages": Page.objects.filter(
                     locked=True,
                     locked_by=request.user,
-                ),
+                ).in_site(request.user.site_user.site),
                 "can_remove_locks": UserPagePermissionsProxy(
                     request.user
                 ).can_remove_locks(),
@@ -265,6 +265,7 @@ class RecentEditsPanel(Component):
         else:
             last_edits_dates = (
                 Revision.page_revisions.filter(user=request.user)
+                .in_site_page_revisions(request.user.site_user.site)
                 .values("object_id")
                 .annotate(latest_date=Max("created_at"))
                 .order_by("-latest_date")

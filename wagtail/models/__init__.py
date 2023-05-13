@@ -30,8 +30,8 @@ from django.core.handlers.base import BaseHandler
 from django.core.handlers.wsgi import WSGIRequest
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models, transaction
-from django.db.models import DEFERRED, Q, Value
-from django.db.models.expressions import OuterRef, Subquery
+from django.db.models import DEFERRED, Q, Value, IntegerField
+from django.db.models.expressions import OuterRef, Subquery, Exists
 from django.db.models.functions import Cast, Concat, Substr
 from django.dispatch import receiver
 from django.http import Http404
@@ -2715,6 +2715,16 @@ class Orderable(models.Model):
 class RevisionQuerySet(models.QuerySet):
     def page_revisions(self):
         return self.filter(base_content_type=get_default_page_content_type())
+
+    def in_site_page_revisions(self, site: Site):
+        site_pages = Q(
+            Exists(
+                site.root_page.get_descendants().filter(
+                    id=Cast(OuterRef("object_id"), output_field=IntegerField())
+                )
+            )
+        )
+        return self.page_revisions().filter(site_pages)
 
     def submitted(self):
         return self.filter(submitted_for_moderation=True)
