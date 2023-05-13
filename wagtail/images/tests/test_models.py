@@ -15,6 +15,10 @@ from willow.image import Image as WillowImage
 from wagtail.images.models import Rendition, SourceImageIOError, get_rendition_storage
 from wagtail.images.rect import Rect
 from wagtail.models import Collection, GroupCollectionPermission, Page, ReferenceIndex
+from wagtail.test.dummy_external_storage import (
+    DummyExternalStorage,
+    DummyExternalStorageFile,
+)
 from wagtail.test.testapp.models import (
     EventPage,
     EventPageCarouselItem,
@@ -28,6 +32,16 @@ from .utils import Image, get_test_image_file
 class CustomStorage(Storage):
     def __init__(self):
         super().__init__()
+
+
+class AnotherDummyExternalStorage(DummyExternalStorage):
+    def _open(self, name, mode="rb"):
+        # External storages has their own File type
+        return AnotherDummyExternalStorageFile(open(self.wrapped.path(name), mode))
+
+
+class AnotherDummyExternalStorageFile(DummyExternalStorageFile):
+    pass
 
 
 class TestImage(TestCase):
@@ -101,6 +115,16 @@ class TestImage(TestCase):
     )
     def test_is_stored_locally_with_external_storage(self):
         self.assertFalse(self.image.is_stored_locally())
+
+    @override_settings(
+        DEFAULT_FILE_STORAGE="wagtail.test.dummy_external_storage.DummyExternalStorage"
+    )
+    def test_reopen_based_on_storage_that_is_dynamically_set(self):
+        self.image.file.close()
+        # Simulate the case is witch the storage is set dynamically
+        self.image.file.storage = AnotherDummyExternalStorage()
+        with self.image.open_file() as f:
+            self.assertTrue(isinstance(f, AnotherDummyExternalStorageFile))
 
     def test_get_file_size(self):
         file_size = self.image.get_file_size()
