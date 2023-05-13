@@ -112,7 +112,8 @@ class Site(models.Model):
         "Page",
         verbose_name=_("root page"),
         related_name="sites_rooted_here",
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
+        limit_choices_to={"depth": 1}
     )
 
     @property
@@ -128,7 +129,6 @@ class Site(models.Model):
         unique_together = ("hostname", "port")
         verbose_name = _("site")
         verbose_name_plural = _("sites")
-        constraints = [CheckConstraint(check=Q(depth=1), name="root_page_be_root")]
 
     def natural_key(self):
         return (self.hostname, self.port)
