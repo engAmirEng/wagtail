@@ -124,7 +124,7 @@ class TestImage(TestCase):
         # Simulate the case is witch the storage is set dynamically
         self.image.file.storage = AnotherDummyExternalStorage()
         with self.image.open_file() as f:
-            self.assertTrue(isinstance(f, AnotherDummyExternalStorageFile))
+            self.assertIsInstance(f, AnotherDummyExternalStorageFile)
 
     def test_get_file_size(self):
         file_size = self.image.get_file_size()
