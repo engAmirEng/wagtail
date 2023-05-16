@@ -10,7 +10,15 @@ Changelog
  * Fix: Prevent choosers from failing when initial value is an unrecognised ID, e.g. when moving a page from a location where `parent_page_types` would disallow it (Dan Braghis)
  * Docs: Document how to add non-ModelAdmin views to a `ModelAdminGroup` (Onno Timmerman)
  * Docs: Document how to add StructBlock data to a StreamField (Ramon Wenger)
+ * Docs: Update ReadTheDocs settings to v2 to resolve urllib3 issue in linkcheck extension (Thibaud Colas)
  * Maintenance: Switch to ruff for flake8 / isort code checking (Oliver Parker)
+
+
+5.0.1 (xx.xx.2023) - IN DEVELOPMENT
+~~~~~~~~~~~~~~~~~~
+
+ * Fix: Rectify previous fix for TableBlock becoming uneditable after save (Sage Abdullah)
+ * Fix: Ensure that copying page correctly picks up the latest revision (Matt Westcott)
 
 
 5.0 (02.05.2023)
@@ -152,6 +160,13 @@ Changelog
  * Maintenance: Migrate the site settings switcher select from jQuery to a refined version of the `w-action` controller usage (Aadi jindal, LB (Ben) Johnston)
  * Maintenance: Always use expanded Sass output so CSS processing is identical in development and production builds (Thibaud Colas)
  * Maintenance: Refactor admin color palette to semantic, theme-agnostic design tokens (Thibaud Colas)
+
+
+4.2.4 (xx.xx.2023) - IN DEVELOPMENT
+~~~~~~~~~~~~~~~~~~
+
+ * Fix: Rectify previous fix for TableBlock becoming uneditable after save (Sage Abdullah)
+ * Fix: Ensure that copying page correctly picks up the latest revision (Matt Westcott)
 
 
 4.2.3 (02.05.2023)
@@ -347,6 +362,13 @@ Changelog
  * Maintenance: Remove unused `icon-help` and `help-inverse` code (Thibaud Colas)
  * Maintenance: Migrate privacy switch, FileFields, history buttons, error messages, Datetimepicker, ordering icons, thumbnails, ModelAdmin, page listings, workflows, and user creation form controls to SVG icons (Thibaud Colas)
  * Maintenance: Switch form submission listings to use the same ordering icons as other listings (Thibaud Colas)
+
+
+4.1.6 (xx.xx.2023) - IN DEVELOPMENT
+~~~~~~~~~~~~~~~~~~
+
+ * Fix: Rectify previous fix for TableBlock becoming uneditable after save (Sage Abdullah)
+ * Fix: Ensure that copying page correctly picks up the latest revision (Matt Westcott)
 
 
 4.1.5 (02.05.2023)
