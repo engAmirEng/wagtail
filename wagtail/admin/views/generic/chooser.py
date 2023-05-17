@@ -32,6 +32,7 @@ from wagtail.coreutils import resolve_model_string
 from wagtail.models import CollectionMember, TranslatableMixin
 from wagtail.permission_policies import BlanketPermissionPolicy, ModelPermissionPolicy
 from wagtail.search.index import class_is_indexed
+from wagtail.sites.utils import generic_provide_by_site
 
 
 class ModalPageFurnitureMixin(ContextMixin):
@@ -531,6 +532,7 @@ class CreateViewMixin:
         return self.get_reshow_creation_form_response()
 
     def save_form(self, form):
+        generic_provide_by_site(form.instance, self.request.user.site_user.site)
         return form.save()
 
     def post(self, request):
