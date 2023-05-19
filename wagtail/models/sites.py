@@ -24,6 +24,7 @@ from django.db.models import (
 from django.db.models.functions import Lower
 from django.http.request import split_domain_port, HttpRequest
 from django.utils.itercompat import is_iterable
+from django.utils.module_loading import import_string
 from django.utils.translation import gettext_lazy as _
 
 
@@ -194,6 +195,10 @@ class Site(models.Model):
 
     @property
     def root_url(self):
+        fn = getattr(settings, "SITE_ROOT_URL_GETTER", None)
+        if fn:
+            fn = import_string(fn)
+            return fn(self)
         if self.port == 80:
             return "http://%s" % self.hostname
         elif self.port == 443:
