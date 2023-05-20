@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 
 from django.contrib.auth.models import Group, Permission
 from django.core.cache import caches
@@ -122,9 +123,11 @@ class TestImage(TestCase):
     def test_reopen_based_on_storage_that_is_dynamically_set(self):
         self.image.file.close()
         # Simulate the case is witch the storage is set dynamically
-        self.image.file.storage = AnotherDummyExternalStorage()
-        with self.image.open_file() as f:
-            self.assertIsInstance(f, AnotherDummyExternalStorageFile)
+        with mock.patch.object(
+            self.image.file, "storage", AnotherDummyExternalStorage()
+        ):
+            with self.image.open_file() as f:
+                self.assertIs(f.__class__, AnotherDummyExternalStorageFile)
 
     def test_get_file_size(self):
         file_size = self.image.get_file_size()
