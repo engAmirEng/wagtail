@@ -97,7 +97,7 @@ class PipStaticBuild(build_py):
 
         try:
             res, err = subprocess.Popen(
-                [shutil.which("npm"), "install", "-y"],
+                [shutil.which("npm"), "ci"],
                 stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE,
             ).communicate()
