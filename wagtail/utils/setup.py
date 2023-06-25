@@ -5,7 +5,6 @@ import subprocess
 
 from setuptools import Command
 from setuptools.command.bdist_egg import bdist_egg
-from setuptools.command.build_py import build_py
 from setuptools.command.sdist import sdist as base_sdist
 
 from wagtail import __semver__
