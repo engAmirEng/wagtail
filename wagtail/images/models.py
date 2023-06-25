@@ -237,7 +237,10 @@ class AbstractImage(ImageFileMixin, CollectionMember, index.Indexed, models.Mode
     PROVIDE_SITE_METHOD = "set_site"
 
     site = models.ForeignKey(
-        "wagtailcore.Site", on_delete=models.CASCADE, related_name="site_%(class)s"
+        "wagtailcore.Site",
+        on_delete=models.CASCADE,
+        related_name="site_%(class)s",
+        null=True,
     )
     title = models.CharField(max_length=255, verbose_name=_("title"))
     """ Use local ImageField with Willow support.  """
